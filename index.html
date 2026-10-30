@@ -489,7 +489,7 @@ a.skinbtn{text-decoration:none}
 .auth-f{display:flex;flex-direction:column;gap:8px}
 .auth-f label{font-size:12px;color:var(--muted);font-weight:600}
 .auth-f input{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--rs);padding:12px 14px;font-size:16px}
-.auth-f input#aCode{font-family:var(--f-mono);font-size:22px;letter-spacing:.3em;text-align:center}
+.auth-pw{display:flex;gap:6px;align-items:center}.auth-pw input{flex:1;min-width:0}.auth-pw .ghost{flex:none}
 .auth-f .btn{justify-content:center;padding:12px 16px;font-size:15px;margin-top:4px}
 .auth-f .btn:disabled{opacity:.6}
 .auth-row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -859,39 +859,53 @@ function wake(){if(!col)return;if(!subAlive&&resub)resub();else col.refresh();fl
 window.addEventListener('online',wake);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});
 
-/* --- экран входа --- */
+/* --- экран входа: почта и пароль --- */
 let authEmail='';
-function showAuth(step){
-  const el=$('#auth');el.hidden=false;const s2=step==='code';
+function showAuth(mode){
+  mode=mode==='signup'?'signup':'signin';
+  const el=$('#auth');el.hidden=false;const up=mode==='signup';
   el.innerHTML=`<div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authH">
     <div class="brand"><i>Ш</i>Штаб</div>
-    <h1 id="authH">${s2?'Введите код':'Вход'}</h1>
-    <p class="auth-p">${s2?`Отправили код на <b>${esc(authEmail)}</b>. Письмо приходит за минуту; проверьте папку «Спам».`:'Введите почту — пришлём код из цифр. Пароль не нужен. Войдите один раз на каждом устройстве, и проекты будут синхронизироваться.'}</p>
-    ${s2?`<form id="authCodeF" class="auth-f"><label for="aCode">Код из письма</label><input id="aCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456" required><button class="btn" type="submit">Войти</button></form>
-      <div class="auth-row"><button class="ghost" data-act="auth-back">Другая почта</button><button class="ghost" data-act="auth-resend">Отправить ещё раз</button></div>`
-    :`<form id="authEmailF" class="auth-f"><label for="aEmail">Почта</label><input id="aEmail" type="email" autocomplete="email" placeholder="you@example.com" value="${esc(authEmail)}" required><button class="btn" type="submit">Получить код</button></form>`}
+    <h1 id="authH">${up?'Новый аккаунт':'Вход'}</h1>
+    <p class="auth-p">${up?'Придумайте пароль не короче 8 символов. Потом входите с этой почтой и паролем на каждом своём устройстве — проекты будут синхронизироваться.':'Войдите своей почтой и паролем. Один раз на каждом устройстве — дальше приложение помнит вас.'}</p>
+    <form id="authF" class="auth-f" data-mode="${mode}">
+      <label for="aEmail">Почта</label><input id="aEmail" type="email" autocomplete="${up?'email':'username'}" placeholder="you@example.com" value="${esc(authEmail)}" required>
+      <label for="aPass">Пароль</label>
+      <div class="auth-pw"><input id="aPass" type="password" autocomplete="${up?'new-password':'current-password'}" minlength="${up?8:1}" required><button type="button" class="ghost" data-act="auth-eye" aria-label="Показать пароль">Показать</button></div>
+      ${up?'<label for="aPass2">Пароль ещё раз</label><input id="aPass2" type="password" autocomplete="new-password" minlength="8" required>':''}
+      <button class="btn" type="submit">${up?'Создать аккаунт':'Войти'}</button>
+    </form>
     <p class="auth-err" id="authErr" role="alert"></p>
+    <div class="auth-row">${up?'<button class="ghost" data-act="auth-signin">У меня уже есть аккаунт</button>':'<button class="ghost" data-act="auth-signup">Создать аккаунт</button>'}</div>
     <button class="ghost auth-skip" data-act="auth-local">Пока без входа — только на этом устройстве</button>
   </div>`;
-  setTimeout(()=>{const i=$(s2?'#aCode':'#aEmail');if(i)i.focus()},50);
+  setTimeout(()=>{const i=$(authEmail?'#aPass':'#aEmail');if(i)i.focus()},50);
 }
 function hideAuth(){const el=$('#auth');if(el){el.hidden=true;el.innerHTML=''}}
 function authErr(m){const e=$('#authErr');if(e)e.textContent=m}
-function authBusy(on){document.querySelectorAll('#auth button').forEach(b=>b.disabled=on)}
-async function sendCode(){
-  authBusy(true);authErr('');
-  const {error}=await sb.auth.signInWithOtp({email:authEmail,options:{shouldCreateUser:true}});
-  authBusy(false);
-  if(error){const m=(error.message||'').toLowerCase();
-    authErr(m.includes('rate')||error.status===429?'Слишком много писем подряд. Подождите минуту и попробуйте снова.':m.includes('not authorized')?'Supabase не отправляет письма на этот адрес. Добавьте его в команду проекта (Organization → Team) или подключите свою почту для отправки.':'Не удалось отправить код: '+error.message);return false}
-  return true;
-}
+function authBusy(on){document.querySelectorAll('#auth button,#auth input').forEach(b=>b.disabled=on)}
+function authMsg(error){const m=(error.message||'').toLowerCase();
+  if(m.includes('invalid login'))return'Неверная почта или пароль. Если аккаунта ещё нет — нажмите «Создать аккаунт».';
+  if(m.includes('already registered')||m.includes('already been registered')||m.includes('user already'))return'Аккаунт с этой почтой уже есть — войдите.';
+  if(m.includes('email not confirmed'))return'В Supabase включено подтверждение почты. Выключите: Authentication → Sign In / Providers → Email → Confirm email.';
+  if(m.includes('signups not allowed')||m.includes('signup is disabled'))return'Регистрация новых аккаунтов закрыта в настройках Supabase.';
+  if(m.includes('password')&&(m.includes('weak')||m.includes('at least')||m.includes('should')))return'Пароль слишком простой — сделайте длиннее, добавьте цифры и буквы разного регистра.';
+  if(m.includes('rate')||error.status===429)return'Слишком много попыток подряд. Подождите минуту.';
+  if(m.includes('fetch')||m.includes('network'))return'Нет связи с сервером. Проверьте интернет.';
+  return'Не получилось: '+error.message}
 document.addEventListener('submit',async e=>{
-  if(e.target.id==='authEmailF'){e.preventDefault();authEmail=$('#aEmail').value.trim();if(!authEmail)return;if(await sendCode())showAuth('code');return}
-  if(e.target.id==='authCodeF'){e.preventDefault();const token=$('#aCode').value.replace(/\D/g,'');if(token.length<6){authErr('В коде должно быть не меньше 6 цифр');return}
-    authBusy(true);authErr('');const {data,error}=await sb.auth.verifyOtp({email:authEmail,token,type:'email'});authBusy(false);
-    if(error||!data||!data.user){authErr('Код не подошёл или устарел. Запросите новый.');return}
-    startSync(data.user);toast('Вы вошли как '+data.user.email);}
+  if(e.target.id!=='authF')return;e.preventDefault();
+  const up=e.target.dataset.mode==='signup';authEmail=$('#aEmail').value.trim();const pass=$('#aPass').value;
+  if(!authEmail||!pass)return;
+  if(up){if(pass.length<8){authErr('Пароль должен быть не короче 8 символов');return}if(pass!==$('#aPass2').value){authErr('Пароли не совпадают');return}}
+  authBusy(true);authErr('');
+  let res;try{res=up?await sb.auth.signUp({email:authEmail,password:pass}):await sb.auth.signInWithPassword({email:authEmail,password:pass})}catch(err){res={error:err}}
+  authBusy(false);
+  const {data,error}=res||{};
+  if(error){authErr(authMsg(error));return}
+  if(up&&data&&data.user&&!data.session){authErr('Аккаунт создан, но Supabase ждёт подтверждения почты. Выключите Confirm email (Authentication → Sign In / Providers → Email) и войдите.');showAuth('signin');authErr('Аккаунт создан. Выключите в Supabase «Confirm email», затем войдите.');return}
+  if(!data||!data.user){authErr('Не получилось войти. Попробуйте ещё раз.');return}
+  startSync(data.user);toast(up?'Аккаунт создан. Добро пожаловать!':'Вы вошли как '+data.user.email);
 },true);
 async function signOut(){
   if(anyPending()||Object.keys(pendQ).length){flushAll();toast('Сначала дождитесь сохранения — попробуйте через пару секунд');return}
@@ -906,8 +920,9 @@ function renderAccount(){
   else el.innerHTML=`<div class="acct-mail">Облако не настроено — данные только на этом устройстве</div>`;
 }
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
-  if(a==='auth-back'){authEmail='';showAuth()}
-  else if(a==='auth-resend'){sendCode().then(ok=>{if(ok)authErr('Отправили новый код')})}
+  if(a==='auth-signup'){const em=$('#aEmail');if(em)authEmail=em.value.trim();showAuth('signup')}
+  else if(a==='auth-signin'){const em=$('#aEmail');if(em)authEmail=em.value.trim();showAuth('signin')}
+  else if(a==='auth-eye'){const ins=document.querySelectorAll('#aPass,#aPass2');const show=ins[0].type==='password';ins.forEach(x=>x.type=show?'text':'password');b.textContent=show?'Скрыть':'Показать';b.setAttribute('aria-label',show?'Скрыть пароль':'Показать пароль')}
   else if(a==='auth-local'){localOnly=true;lsSet(LSK+'.localOnly','1');hideAuth();toast('Данные хранятся только на этом устройстве. Войти можно в меню слева.')}
   else if(a==='signin'){showAuth()}
   else if(a==='signout'){signOut()}
