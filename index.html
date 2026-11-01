@@ -125,7 +125,7 @@
 :root[data-skin="lists"] .sr{grid-template-columns:30px minmax(0,1fr) auto 30px}
 :root[data-skin="lists"] .sr .dot{width:30px;height:30px}
 :root[data-skin="lists"] .mr{grid-template-columns:30px minmax(0,1fr) auto 30px}
-:root[data-skin="lists"] .mr-ic{width:30px;height:30px;border-radius:50%;background:var(--warn);color:#fff}
+:root[data-skin="lists"] .mr-ic{width:30px;height:30px;border-radius:50%;background:var(--memo);color:#fff}
 :root[data-skin="lists"] .sr-main b{font-weight:500;font-size:15px}
 :root[data-skin="lists"] .pfilter{display:none}
 :root[data-skin="lists"] .pc-head .dot{width:28px;height:28px}
@@ -437,7 +437,7 @@ details.donebox .tlist{margin-top:6px}
 .mr{display:grid;grid-template-columns:18px minmax(0,1fr) auto 30px;gap:10px;align-items:center;padding:10px 4px 10px 6px;border-bottom:1px solid var(--line);cursor:pointer}
 .mr:hover{background:color-mix(in srgb,var(--sunk) 50%,transparent)}
 .mr:hover .icodel{opacity:1}
-.mr-ic{color:var(--accent);display:grid;place-items:center}
+.mr-ic{color:var(--memo);display:grid;place-items:center}.mr-ic svg{width:18px;height:18px}
 .mr .sr-meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mr-d{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
 .sheet.memo{max-width:720px;min-height:min(560px,80dvh)}
@@ -537,16 +537,33 @@ a.skinbtn{text-decoration:none}
   .mbar-title{font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:13;background:var(--bg)}
 }
+/* project colour picker */
+.sn-pw{display:flex;align-items:center;gap:0;padding-left:calc(var(--d,0) * 16px)}
+.sn-pw .sn-proj{padding-left:10px;flex:1;min-width:0}
+.sn-pw .sn-dot+.sn-proj{padding-left:6px}
+.sn-dot{flex:none;width:14px;height:14px;border-radius:50%;border:2px solid transparent;padding:0;margin-left:8px;cursor:pointer;box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 15%,transparent)}
+.sn-dot:hover,.sn-dot:focus-visible{box-shadow:0 0 0 2px var(--surface),0 0 0 4px currentColor;outline:none}
+.sn-dot.big{width:18px;height:18px;margin:0 6px 0 0}
+.sqb{border:0;padding:0;cursor:pointer}.sqb:hover{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--muted)}
+.cpick{position:fixed;z-index:70;width:232px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:10px}
+.cpick-h{font-size:13px;font-weight:600}.cpick-h span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.cpick-g{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.cpick-s{width:24px;height:24px;border-radius:50%;border:0;padding:0;cursor:pointer}
+.cpick-s[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.cpick-s:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cpick-c{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.cpick-c input{width:40px;height:26px;border:1px solid var(--line);border-radius:6px;background:transparent;padding:0 2px;cursor:pointer}
+:root{--memo:#4AA8F2}
 /* tasks & notes rows in the Projects list, virtual leaves on the tree */
 .nl-i{min-height:34px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);cursor:pointer;font-size:13px}
 .nl-i .nl-name{gap:8px}
 .nl-i .ck{width:16px;height:16px;border-width:1.6px;flex:none;margin:0;border-radius:4px}
 .nl-tg svg+svg{margin-left:-2px}
-.lgi{display:inline-flex;align-items:center;gap:5px}.lgi svg{width:12px;height:12px}
+.lgi{display:inline-flex;align-items:center;gap:5px}.lgi svg{width:12px;height:12px}.lgi.memo svg{color:var(--memo);width:14px;height:14px}
 .gbtn svg+svg{margin-left:-3px}
 .nl-i .t{color:color-mix(in srgb,var(--ink) 82%,var(--muted))}
 .nl-pr{color:var(--bad);font-weight:700}
-.nl-mi{color:var(--muted);display:inline-flex;flex:none}.nl-mi svg{width:13px;height:13px}
+.nl-mi{color:var(--memo);display:inline-flex;flex:none}.nl-mi svg{width:17px;height:17px}
 .nl-prev{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .nl-i .stp{font-size:11px;padding:1px 8px}
 .nl-done .t{color:var(--muted);font-size:12px}
@@ -587,7 +604,7 @@ a.skinbtn{text-decoration:none}
 .nl-tie{width:10px;height:12px;border-left:1px solid color-mix(in srgb,var(--muted) 45%,transparent);border-bottom:1px solid color-mix(in srgb,var(--muted) 45%,transparent);transform:translateY(-5px);flex:none}
 .nl-meta{font-size:11px;color:var(--muted);white-space:nowrap}
 .nl-tag{display:inline-flex;align-items:center;gap:3px;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
-.nl-tag svg{width:11px;height:11px}
+.nl-tag svg{width:13px;height:13px;color:var(--memo)}
 .nl-prog{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .ring{flex:none}
 .ring circle{fill:none;stroke-width:2.4}
@@ -977,7 +994,25 @@ function projChain(pid){const out=[];let c=parentProject(pid),g=0;while(c&&g++<5
 function treeStats(pid){let t=0,d=0;const walk=id=>{const p=S.projects[id];t+=p.tasks.length;d+=p.tasks.filter(x=>x.status==='done').length;for(const [c] of childProjects(id))walk(c)};walk(pid);return{t,d,pct:t?Math.round(d/t*100):0}}
 function addSubproject(pid,name){const k=nodeOfProject(pid);const np=newProject(name||'Новый подпроект');addChild(k||'root',S.projects[np].name,{project:np});persist(np);persist('map');return np}
 function topProjOf(pid){return projChain(pid)[0]||pid}
-function projColor(pid){const p=S.projects[topProjOf(pid)];return `var(${PCOL[(p?p.color:0)%PCOL.length]})`}
+function colorOf(p){const c=p?p.color:0;return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)?c:`var(${PCOL[(+c||0)%PCOL.length]})`}
+function projColor(pid){return colorOf(S.projects[topProjOf(pid)])}
+const SWATCH=['#7C6CF2','#B07CE8','#E06C9F','#EB5757','#EB7A4A','#E8A23B','#E3C43A','#9CC740','#4CB782','#2BB3C0','#5BA4F0','#3D6FD9','#8A8F98','#C9A27E'];
+function openColorPicker(pid,anchor){
+  closeColorPicker();const p=S.projects[pid];if(!p)return;const cur=typeof p.color==='string'?p.color.toLowerCase():'';
+  const el=document.createElement('div');el.className='cpick';el.id='cpick';el.setAttribute('role','dialog');el.setAttribute('aria-label','Цвет проекта');
+  el.innerHTML=`<div class="cpick-h">Цвет «${esc(p.name||'Без названия')}» <span>и всех подпроектов</span></div>
+    <div class="cpick-g">${SWATCH.map(c=>`<button class="cpick-s" data-setcolor="${c}" data-pid="${pid}" style="background:${c}" aria-label="Цвет ${c}" aria-pressed="${cur===c.toLowerCase()}"></button>`).join('')}</div>
+    <label class="cpick-c">Свой цвет <input type="color" id="cpickIn" data-pid="${pid}" value="${cur||'#7c6cf2'}"></label>`;
+  document.body.appendChild(el);
+  const r=anchor.getBoundingClientRect();const w=232;let x=Math.min(r.left,innerWidth-w-12),y=r.bottom+6;if(y+200>innerHeight)y=Math.max(12,r.top-206);
+  el.style.left=Math.max(12,x)+'px';el.style.top=y+'px';setTimeout(()=>{const b=el.querySelector('[aria-pressed="true"]')||el.querySelector('.cpick-s');b&&b.focus()},20);
+}
+function closeColorPicker(){const e=document.getElementById('cpick');if(e)e.remove()}
+function setProjColor(pid,c){const p=S.projects[pid];if(!p)return;p.color=c;persist(pid);renderChips();
+  if(S.screen==='map'){readColors();redrawMap()}else renderMain();const sw=document.querySelectorAll('#cpick .cpick-s');sw.forEach(b=>b.setAttribute('aria-pressed',b.dataset.setcolor.toLowerCase()===c.toLowerCase()))}
+document.addEventListener('input',e=>{if(e.target.id==='cpickIn')setProjColor(e.target.dataset.pid,e.target.value)});
+document.addEventListener('pointerdown',e=>{const c=document.getElementById('cpick');if(c&&!c.contains(e.target)&&!(e.target.closest&&e.target.closest('[data-colorfor]')))closeColorPicker()},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('cpick')){closeColorPicker();e.stopPropagation()}},true);
 /* tasks and notes of a project shown as extra leaves on the maps (not stored in the map) */
 let VN={},VK={};
 function buildVirtual(){VN={};VK={};if(S.mapItems===false)return;
@@ -1067,7 +1102,8 @@ function renderChips(){
   const isMap=S.screen==='map';const curTop=S.projects[S.screen]?S.screen:null;
   const item=(attrs,ic,label,n,cur)=>`<button class="sn-item" ${attrs} aria-current="${cur?'page':'false'}">${ic}<span>${label}</span>${n!=null?`<em class="num">${n}</em>`:''}</button>`;
   const tree=(pid,d)=>{const p=S.projects[pid];const st=stats(p);const kids=childProjects(pid);
-    return `<button class="sn-proj" data-screen="${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}"><span class="dot" style="background:${projColor(pid)}"></span><span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button>`+kids.map(([c])=>tree(c,d+1)).join('')};
+    const dot=d===0?`<button class="sn-dot" data-colorfor="${pid}" style="background:${projColor(pid)}" aria-label="Выбрать цвет проекта «${esc(p.name)}»" title="Цвет проекта"></button>`:`<span class="dot" style="background:${projColor(pid)}"></span>`;
+    return `<div class="sn-pw" style="--d:${d}">${d===0?dot:''}<button class="sn-proj" data-screen="${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}">${d===0?'':dot}<span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button></div>`+kids.map(([c])=>tree(c,d+1)).join('')};
   $('#chips').innerHTML=`<div class="sn-sec">
       ${item('data-screen="projects"',I.list,'Проекты',open||null,S.screen==='projects')}
       ${item('data-nav="tree"',I.tree,'Дерево',null,isMap&&S.mapView==='tree')}
@@ -1151,7 +1187,7 @@ function renderProjects(){
     const st=pStatus(p,today);const nsub=childProjects(pid).length;const collapsed=S.pcol.includes(pid)&&f==='all';
     return `<div class="nl-group">
       <div class="nl-row nl-g" data-screen="${pid}" role="button" tabindex="0">
-        <span class="nl-name"><button class="nl-chev" data-pcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><span class="sq" style="background:${projColor(pid)}"></span><span class="t">${esc(p.name||'Без названия')}</span>${nsub?`<span class="nl-meta num">${nsub} подпр.</span>`:''}${(p.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${p.memos.length}</span>`:''}</span>
+        <span class="nl-name"><button class="nl-chev" data-pcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><button class="sq sqb" data-colorfor="${pid}" style="background:${projColor(pid)}" aria-label="Выбрать цвет проекта" title="Цвет проекта"></button><span class="t">${esc(p.name||'Без названия')}</span>${nsub?`<span class="nl-meta num">${nsub} подпр.</span>`:''}${(p.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${p.memos.length}</span>`:''}</span>
         ${nlCells(p,st,today,false)}
         <span class="nl-x"><button class="icodel" data-delsub="${pid}" aria-label="Удалить проект «${esc(p.name)}»" title="Удалить">${I.trash}</button></span>
       </div>${nlAsk(pid,nsub)}
@@ -1181,7 +1217,7 @@ function renderProject(){
   $('#main').style.setProperty('--pc',projColor(pid));
   $('#main').innerHTML=`<section class="phead">
     ${chain.length?`<div class="crumb">${chain.map(c=>`<button data-screen="${c}">${esc(S.projects[c].name)}</button>`).join('<span>›</span>')}<span>›</span></div>`:''}
-    <div class="ptitle"><input class="pname" id="projName" value="${esc(p.name)}" aria-label="Название проекта" maxlength="80"><button class="icodel big" data-act="delproj" aria-label="Удалить проект" title="Удалить проект">${I.trash}</button></div>
+    <div class="ptitle"><button class="sn-dot big" data-colorfor="${topProjOf(pid)}" style="background:${projColor(pid)}" aria-label="Цвет проекта" title="${chain.length?'Цвет задаётся у корневого проекта':'Цвет проекта'}"></button><input class="pname" id="projName" value="${esc(p.name)}" aria-label="Название проекта" maxlength="80"><button class="icodel big" data-act="delproj" aria-label="Удалить проект" title="Удалить проект">${I.trash}</button></div>
     <div><button class="btn sec" data-act="projonmap">${I.map} На карте</button></div>
     <div class="pmeta"><div class="bar" aria-hidden="true"><b></b></div><span id="pstat"></span></div>
     ${S.confirmDel?`<div class="pc-ask wide"><span>Удалить проект «${esc(p.name)}» со всеми задачами и веткой на карте?${nsub?' Подпроекты останутся и поднимутся на уровень выше.':''}</span><button class="askb danger" data-act="delproj-yes">Удалить</button><button class="askb" data-act="delproj-no">Отмена</button></div>`:''}
@@ -1405,7 +1441,7 @@ const TVP={x:0,y:0,k:1,init:false};
 function layoutTree(){
   buildVirtual();const m=S.map,G={};
   const metrics=id=>{const n=nodeObj(id),root=id==='root',virt=!m[id];const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
-    let extra=root?36:((taskOf(n)||n.memoId)?42:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
+    let extra=root?36:(taskOf(n)?42:n.memoId?45:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
     return{label,st,w:Math.max(root?120:56,textW(label,font)+extra),h:root?48:(n.project?38:virt?30:34)}};
   const size=id=>{const g=metrics(id);G[id]=g;const n=nodeObj(id);const kids=n.collapsed?[]:treeKids(id);let kh=0;kids.forEach((c,i)=>{kh+=size(c)+(i?VG:0)});g.kh=kh;g.sub=Math.max(g.h,kh);return g.sub};
   const place=(id,x,top,dir,branch,depth)=>{const g=G[id],n=nodeObj(id);g.cy=top+g.sub/2;g.x=dir>0?x:x-g.w;g.y=g.cy-g.h/2;g.dir=dir;g.branch=branch;g.depth=depth;
@@ -1440,8 +1476,8 @@ function drawTree(){
       mark=t.status==='done'?`<rect x="${cx-6.5}" y="${cy-6.5}" width="13" height="13" rx="3.5" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
        :t.status==='doing'?`<rect x="${cx-6}" y="${cy-6}" width="12" height="12" rx="3.2" fill="none" stroke="${sc}" stroke-width="1.7"/><rect x="${cx-3}" y="${cy-3}" width="6" height="6" rx="1.4" fill="${sc}"/>`
        :`<rect x="${cx-6}" y="${cy-6}" width="12" height="12" rx="3.2" fill="none" stroke="${sc}" stroke-width="1.7"/>`}
-    else if(n.memoId){mark=`<g stroke="${col}" stroke-width="1.6" stroke-linecap="round"><path d="M${cx-2},${cy-4}h8M${cx-2},${cy}h8M${cx-2},${cy+4}h8"/></g><g fill="${col}"><circle cx="${cx-5.5}" cy="${cy-4}" r="1.1"/><circle cx="${cx-5.5}" cy="${cy}" r="1.1"/><circle cx="${cx-5.5}" cy="${cy+4}" r="1.1"/></g>`}
-    const tx=root?a.x+a.w/2:((t||n.memoId)?a.x+28:a.x+13);
+    else if(n.memoId){mark=`<g stroke="var(--memo)" stroke-width="1.9" stroke-linecap="round"><path d="M${cx-2.5},${cy-5}h9.5M${cx-2.5},${cy}h9.5M${cx-2.5},${cy+5}h9.5"/></g><g fill="var(--memo)"><circle cx="${cx-6.5}" cy="${cy-5}" r="1.5"/><circle cx="${cx-6.5}" cy="${cy}" r="1.5"/><circle cx="${cx-6.5}" cy="${cy+5}" r="1.5"/></g>`}
+    const tx=root?a.x+a.w/2:(t?a.x+28:n.memoId?a.x+31:a.x+13);
     html+=`<g class="${cls}" data-node="${id}">${id===S.sel?`<rect class="ring" x="${a.x-5}" y="${a.y-5}" width="${a.w+10}" height="${a.h+10}" rx="${root?16:12}"/>`:''}<rect class="box" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="${root?12:9}" stroke="${root?'var(--ink)':col}"/>${mark}<text x="${tx}" y="${a.cy}" ${root?'text-anchor="middle"':''} ${t&&t.status==='done'?'fill-opacity=".55"':''}>${esc(a.label)}${a.st?`<tspan class="st">${esc(a.st)}</tspan>`:''}</text><title>${esc(n.text)}${virt?(n.memoId?' — заметка':' — задача'):''}</title></g>`;
     if(!virt&&treeKids(id).length&&!root){const tcx=a.dir>0?a.x+a.w+9:a.x-9;
       html+=`<g class="tog" data-tog="${id}"><title>${n.collapsed?'Развернуть ветку':'Свернуть ветку'}</title><circle cx="${tcx}" cy="${a.cy}" r="8" stroke="${col}"/><text x="${tcx}" y="${a.cy}" fill="${col}">${n.collapsed?Math.max(1,subtree(id).length-1+(VK[id]||[]).length):'−'}</text></g>`}}
@@ -1498,7 +1534,7 @@ const SIM={nodes:new Map(),list:[],edges:[],adj:new Map(),alpha:0,sig:''};
 const GVP={x:0,y:0,k:1,init:false};
 let cv=null,ctx=null,dpr=1,raf=0,dirty=true,hover=null,colors={b:[]},ro=null;
 function readColors(){const cs=getComputedStyle(document.documentElement);const g=n=>cs.getPropertyValue(n).trim();
-  colors={bg:g('--g-bg'),node:g('--g-node'),edge:g('--g-edge'),ghost:g('--g-ghost'),ink:g('--ink'),muted:g('--muted'),accent:g('--accent'),ok:g('--ok'),warn:g('--warn'),bad:g('--bad'),b:PCOL.map(g)};dirty=true}
+  colors={bg:g('--g-bg'),node:g('--g-node'),edge:g('--g-edge'),ghost:g('--g-ghost'),memo:g('--memo')||'#4AA8F2',ink:g('--ink'),muted:g('--muted'),accent:g('--accent'),ok:g('--ok'),warn:g('--warn'),bad:g('--bad'),b:PCOL.map(g)};dirty=true}
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{readColors();if(cv)refreshGraph()})}catch(e){}
 new MutationObserver(()=>{readColors();if(cv)refreshGraph()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 function linksOf(body){const out=[];for(const m of (body||'').matchAll(/\[\[([^\]\|#\n]+)/g))out.push(m[1].trim());return out}
@@ -1516,13 +1552,13 @@ function buildGraph(){
   const ids=new Set(out.map(n=>n.id));return{nodes:out,edges:edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),deg};
 }
 function branchOfNode(id,par){let c=id,g=0;while(c&&c!=='root'&&g++<200){const p=par.get(c);if(p==='root'||p==null)return c;c=p}return null}
-function branchHex(bid){if(!bid)return colors.ink;const n=S.map[bid];if(n&&n.project&&S.projects[n.project]){const tp=S.projects[topProjOf(n.project)];return colors.b[(tp?tp.color:0)%PCOL.length]}
+function branchHex(bid){if(!bid)return colors.ink;const n=S.map[bid];if(n&&n.project&&S.projects[n.project]){const tp=S.projects[topProjOf(n.project)];const c=tp?tp.color:0;return typeof c==='string'&&c[0]==='#'?c:colors.b[(+c||0)%PCOL.length]}
   const i=S.map.root.children.indexOf(bid);return colors.b[(i<0?0:i)%PCOL.length]}
 function statusHex(t){if(!t)return null;if(t.status==='done')return colors.ok;if(t.status!=='done'&&t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
 function nodeColor(id){
   const n=S.map[id];if(id==='root')return colors.ink;
   const t=taskOf(n);if(t){if(t.status==='done')return colors.ok;if(t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
-  if(n.project&&S.projects[n.project])return colors.b[S.projects[n.project].color%PCOL.length];
+  if(n.project&&S.projects[n.project]){const c=S.projects[topProjOf(n.project)].color;return typeof c==='string'&&c[0]==='#'?c:colors.b[(+c||0)%PCOL.length]}
   return colors.node}
 function computeTargets(){
   const N=SIM.nodes;const kids=new Map();const add=(p,c)=>{(kids.get(p)||kids.set(p,[]).get(p)).push(c)};
@@ -1607,7 +1643,7 @@ function draw(){
       if(n.done)ctx.globalAlpha*=.6;ctx.fillStyle=col;rr(n.x,n.y,r);ctx.fill();
       if(n.ring){ctx.strokeStyle=n.ring;ctx.lineWidth=Math.max(1.5,r*.38);rr(n.x,n.y,r+ctx.lineWidth*.6);ctx.stroke()}
       ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(1,r*.28);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(n.x-r*.5,n.y+r*.02);ctx.lineTo(n.x-r*.12,n.y+r*.42);ctx.lineTo(n.x+r*.55,n.y-r*.4);ctx.stroke()}
-    else if(n.shape==='memo'){const r=n.r;ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fill();
+    else if(n.shape==='memo'){const r=n.r*1.2;ctx.fillStyle=hover&&hover.id===n.id?colors.accent:colors.memo;ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(.9,r*.2);ctx.lineCap='round';ctx.beginPath();for(const dy of[-.38,0,.38]){ctx.moveTo(n.x-r*.45,n.y+dy*r);ctx.lineTo(n.x+r*.5,n.y+dy*r)}ctx.stroke()}
     else{ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill()}
     if(n.id===sel){ctx.globalAlpha=1;ctx.strokeStyle=colors.accent;ctx.lineWidth=2/v.k;ctx.beginPath();ctx.arc(n.x,n.y,n.r+4/v.k,0,Math.PI*2);ctx.stroke()}}
@@ -1673,7 +1709,7 @@ function bindSet(){
   const sm=$('#optSizeMode');if(sm)sm.addEventListener('change',()=>{S.gopt.sizeMode=sm.value;cacheLocal();refreshGraph();SIM.alpha=Math.max(SIM.alpha,.5);startLoop();renderLegend()});
 }
 function renderLegend(){const el=$('#glegend');if(!el)return;
-  el.innerHTML=`<span><i class="lg" style="background:var(--b1)"></i><i class="lg" style="background:var(--b2);margin-left:-3px"></i>цвет — проект и вся его ветка</span><span class="lgi">${I.task}задача — квадрат с галочкой, рамка — статус</span><span class="lgi">${I.memo}заметка — кружок со списком</span><span><i class="lg hollow"></i>ссылка на несуществующий узел</span><span class="lgn">рамка задачи: серая — сделать, жёлтая — в работе, зелёная — готово, красная — просрочено · пунктир — [[ссылка]] из заметки</span>`}
+  el.innerHTML=`<span><i class="lg" style="background:var(--b1)"></i><i class="lg" style="background:var(--b2);margin-left:-3px"></i>цвет — проект и вся его ветка</span><span class="lgi">${I.task}задача — квадрат с галочкой, рамка — статус</span><span class="lgi memo">${I.memo}заметка — голубой кружок со списком</span><span><i class="lg hollow"></i>ссылка на несуществующий узел</span><span class="lgn">рамка задачи: серая — сделать, жёлтая — в работе, зелёная — готово, красная — просрочено · пунктир — [[ссылка]] из заметки</span>`}
 function bindGraph(){
   const pts=new Map();let st=null,moved=false,pinch=null,drag=null;
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const p=gpt(e);pts.set(e.pointerId,p);moved=false;
@@ -1845,7 +1881,7 @@ function doRestore(){
 document.addEventListener('click',e=>{
   if(e.target.closest('input,select,textarea'))return;
   const b=e.target.closest('button,[data-task],[data-screen],[data-memo]');if(!b)return;
-  if(b.closest('#side')&&b.dataset.act!=='opennav')document.getElementById('app').classList.remove('navopen');
+  if(b.closest('#side')&&b.dataset.act!=='opennav'&&!b.dataset.colorfor)document.getElementById('app').classList.remove('navopen');
   if(b.dataset.act==='opennav'){document.getElementById('app').classList.add('navopen');return}
   if(b.dataset.act==='closenav'){document.getElementById('app').classList.remove('navopen');return}
   if(b.dataset.act==='gobackup'){document.getElementById('app').classList.remove('navopen');if(S.screen!=='projects'){S.screen='projects';render()}setTimeout(()=>{const el=document.querySelector('.backup');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},30);return}
@@ -1854,6 +1890,8 @@ document.addEventListener('click',e=>{
   if(b.dataset.act==='skins'){openSkins();return}
   if(b.dataset.act==='closeskins'){$('#layer .scrim')?.remove();return}
   if(b.dataset.skinPick){applySkin(b.dataset.skinPick);openSkins();return}
+  if(b.dataset.colorfor){const pid=topProjOf(b.dataset.colorfor);if(document.getElementById('cpick')&&document.getElementById('cpick').dataset.for===pid){closeColorPicker();return}openColorPicker(pid,b);const c=document.getElementById('cpick');if(c)c.dataset.for=pid;return}
+  if(b.dataset.setcolor){setProjColor(b.dataset.pid,b.dataset.setcolor);return}
   if(b.dataset.deltask){const f=findTask(b.dataset.deltask);if(!f)return;const nm=f.t.title;const undo=deleteTask(f.pid,f.t.id);afterTaskChange(f.pid);toast('Задача «'+nm+'» удалена',()=>{undo();render()});return}
   if(b.dataset.cyc){const f=findTask(b.dataset.cyc);if(!f)return;setStatus(f.t,ST_NEXT[f.t.status]);afterTaskChange(f.pid);return}
   if(b.dataset.pr){const f=findTask(b.dataset.pr);if(!f)return;f.t.prio=PR_NEXT[f.t.prio]||'mid';afterTaskChange(f.pid);return}
