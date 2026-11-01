@@ -215,7 +215,7 @@ details.donebox[open] summary::before{transform:rotate(90deg)}
 details.donebox .tlist{margin-top:6px}
 
 /* map shell */
-.mapbox{position:relative;margin-top:14px;height:max(480px,calc(100dvh - 230px));background:var(--g-bg);border:1px solid var(--line);border-radius:var(--rc);overflow:hidden}
+.mapbox{position:relative;margin-top:14px;height:max(420px,calc(var(--paneh,100dvh) - 230px));background:var(--g-bg);border:1px solid var(--line);border-radius:var(--rc);overflow:hidden}
 .mapbox.tree{background-color:var(--surface);background-image:radial-gradient(circle,var(--line) 1px,transparent 1.2px);background-size:22px 22px}
 .mapbox>svg,.mapbox>canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
 .mapbox .grab{cursor:grabbing}
@@ -524,6 +524,7 @@ a.skinbtn{text-decoration:none}
 .side-bottom #fsBtn[hidden]{display:none}
 .work{min-width:0;padding-left:max(20px,env(safe-area-inset-right,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:6px 32px}
 .work #main{max-width:1400px;margin:0 auto}
+.panes.split #main{max-width:none}
 .mbar-top{display:none}
 .side-scrim{display:none}
 @media (max-width:860px){
@@ -537,6 +538,41 @@ a.skinbtn{text-decoration:none}
   .mbar-title{font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:13;background:var(--bg)}
 }
+/* tabs + split panes */
+.work{display:flex;flex-direction:column;height:100dvh;padding-block:0!important;overflow:hidden}
+.panes{flex:1;min-height:0;display:flex;flex-direction:column}
+.panes.split.row{flex-direction:row}
+.pane{position:relative;min-width:0;min-height:0;flex:1 1 50%;overflow:auto;padding-bottom:28px;overscroll-behavior:contain}
+.panes:not(.split) .pane{flex:1 1 auto}
+.panes.split .pane{flex-grow:0;flex-shrink:0}
+.panes.split #pane1{flex:1 1 0;padding:0;overflow:hidden}
+.pane iframe{border:0;width:100%;height:100%;display:block;background:var(--bg)}
+.pdiv{flex:none;background:var(--line);position:relative;z-index:3}
+.panes.row .pdiv{width:5px;cursor:col-resize;margin:0 2px}
+.panes.col .pdiv{height:5px;cursor:row-resize;margin:2px 0}
+.pdiv:hover,.pdiv:focus-visible{background:var(--accent);outline:none}
+.panes.split .pane.focused{box-shadow:inset 0 2px 0 var(--accent)}
+body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
+.tabbar{position:sticky;top:0;z-index:11;display:flex;align-items:flex-end;gap:8px;background:var(--bg);border-bottom:1px solid var(--line);padding-top:8px;margin-bottom:4px}
+.tb-tabs{display:flex;align-items:flex-end;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.tb-tabs::-webkit-scrollbar{display:none}
+.tb-tab{flex:none;display:flex;align-items:center;gap:7px;max-width:220px;padding:7px 8px 7px 11px;border:1px solid transparent;border-bottom:0;border-radius:var(--rs) var(--rs) 0 0;color:var(--muted);font-size:13px;cursor:pointer;user-select:none;margin-bottom:-1px}
+.tb-tab:hover{color:var(--ink);background:color-mix(in srgb,var(--sunk) 60%,transparent)}
+.tb-tab[aria-selected="true"]{background:var(--surface);color:var(--ink);border-color:var(--line);font-weight:600}
+.tb-tab svg{width:13px;height:13px;flex:none}.tb-tab .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.tb-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tb-x{flex:none;width:20px;height:20px;border:0;background:transparent;color:var(--muted);border-radius:5px;display:grid;place-items:center;padding:0;opacity:.6}
+.tb-x svg{width:11px;height:11px}.tb-x:hover{opacity:1;background:var(--sunk);color:var(--ink)}
+.tb-add{flex:none;width:28px;height:28px;margin:0 0 3px 2px;border:0;background:transparent;color:var(--muted);border-radius:var(--rs);display:grid;place-items:center;padding:0}
+.tb-add:hover{background:var(--sunk);color:var(--ink)}
+.tb-tools{flex:none;display:flex;gap:2px;padding-bottom:4px}
+.tb-btn{width:30px;height:28px;border:1px solid transparent;background:transparent;color:var(--muted);border-radius:var(--rs);display:grid;place-items:center;padding:0}
+.tb-btn:hover{background:var(--sunk);color:var(--ink)}.tb-btn[aria-pressed="true"]{color:var(--accent);border-color:var(--line)}
+.tb-btn svg{width:15px;height:15px}
+.in-pane .side,.in-pane .mbar-top,.in-pane .side-scrim{display:none!important}
+.in-pane .shell{grid-template-columns:minmax(0,1fr)}
+.in-pane .work{padding-left:14px!important;padding-right:14px!important}
+.in-pane .auth{display:none!important}
 /* project colour picker */
 .sn-pw{display:flex;align-items:center;gap:0;padding-left:calc(var(--d,0) * 16px)}
 .sn-pw .sn-proj{padding-left:10px;flex:1;min-width:0}
@@ -722,6 +758,14 @@ a.skinbtn{text-decoration:none}
 .pfilter button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 @media (max-width:640px){.phead{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@supports (container-type:inline-size){
+.panes.split #pane0{container-type:inline-size}
+@container (max-width:700px){
+  .nl-row{grid-template-columns:minmax(0,1fr) auto 30px;gap:0 10px;padding-left:10px}
+  .nl-open,.nl-due,.nl-st,.nl-meta,.nl-tag,.nl-hd span:nth-child(3),.nl-hd span:nth-child(4),.nl-hd span:nth-child(5),.nl-prev,.nl-i .nl-st{display:none}
+  .nl-prog svg{display:none}.nl-sum{margin-left:0;flex-basis:100%;order:3}
+  .pgrid{grid-template-columns:minmax(0,1fr)}
+}}
 </style>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -741,7 +785,7 @@ a.skinbtn{text-decoration:none}
   </aside>
   <div class="work">
     <header class="mbar-top"><button class="ghost" data-act="opennav" aria-label="Открыть меню"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg></button><div class="brand"><i>Ш</i>Штаб</div><span class="mbar-title" id="mbarTitle"></span></header>
-    <main id="main"><p class="hint">Загружаю…</p></main>
+    <div class="panes" id="panes"><section class="pane" id="pane0"><div class="tabbar" id="tabbar"></div><main id="main"><p class="hint">Загружаю…</p></main></section></div>
   </div>
 </div>
 <div class="side-scrim" data-act="closenav"></div>
@@ -750,6 +794,8 @@ a.skinbtn{text-decoration:none}
 
 <script>
 (()=>{
+const PANE=(()=>{try{return new URLSearchParams(location.search).get('pane')}catch(e){return null}})();
+if(PANE)document.documentElement.classList.add('in-pane');
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
@@ -781,19 +827,22 @@ const I={
   arrow:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
   memo:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><circle cx="2.6" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="2.6" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="2.6" cy="12" r="1" fill="currentColor" stroke="none"/></svg>',
   task:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8.2l2.1 2.1L11 6"/></svg>',
+  splitv:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M8 2.5v11"/></svg>',
+  splith:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M1.8 8h12.4"/></svg>',
   check:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>'
 };
 
 /* ---------- state ---------- */
 const S={projects:{},map:null,screen:'map',mapView:'tree',sel:'root',panel:false,noteMode:'view',openTask:null,confirmDel:false,
-  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],mapItems:true,pitems:true,tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
+  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],mapItems:true,pitems:true,tabs:null,tab:null,split:null,tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
 let col=null,firstSnap=true,dl=null;
 const pend={};
 const LSK='shtab.v1';
+const UIK=LSK+'.ui'+(PANE?'.pane'+PANE:'');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
-function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(LSK+'.ui',JSON.stringify({screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems}))}
+function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems}))}
 function setSync(s){const el=$('#sync');if(!el)return;el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
   el.textContent=s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Синхронизация выключена: данные лежат только на этом устройстве.':''}
@@ -882,7 +931,7 @@ async function initStore(){
   let session=null;try{session=(await sb.auth.getSession()).data.session}catch(e){}
   sb.auth.onAuthStateChange((ev,ses)=>{if(ev==='SIGNED_OUT'&&sbUser){stopSync();renderAccount()}});
   if(session&&session.user)startSync(session.user);
-  else{setSync('local');renderAccount();if(!localOnly)showAuth()}
+  else{setSync('local');renderAccount();if(!localOnly&&!PANE)showAuth()}
 }
 function startSync(user){
   sbUser=user;localOnly=false;lsSet(LSK+'.localOnly','0');hideAuth();renderAccount();
@@ -968,7 +1017,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 },true);
 
 /* --- установка и обновления --- */
-if('serviceWorker' in navigator&&location.protocol!=='file:'){
+if('serviceWorker' in navigator&&location.protocol!=='file:'&&!PANE){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(reg=>{
     reg.addEventListener('updatefound',()=>{const w=reg.installing;if(!w)return;w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)toast('Вышла новая версия',()=>{w.postMessage('skip')},'Обновить')})});
   }).catch(()=>{})});
@@ -1097,7 +1146,68 @@ function renderSafe(){
   render();
 }
 function render(){renderChips();renderMain();cacheLocal()}
-function renderChips(){
+/* ---------- вкладки ---------- */
+function ensureTabs(){if(!Array.isArray(S.tabs)||!S.tabs.length){S.tabs=[{id:'t'+uid(),screen:S.screen,mapView:S.mapView}];S.tab=S.tabs[0].id}
+  if(!S.tabs.some(t=>t.id===S.tab))S.tab=S.tabs[0].id;
+  for(const t of S.tabs)if(t.screen!=='map'&&t.screen!=='projects'&&!S.projects[t.screen])t.screen='projects'}
+const curTab=()=>S.tabs.find(t=>t.id===S.tab);
+function syncTab(){ensureTabs();const t=curTab();t.screen=S.screen;t.mapView=S.mapView}
+function tabTitle(t){if(t.screen==='projects')return['Проекты',null,'list'];if(t.screen==='map')return[t.mapView==='graph'?'Граф':'Дерево',null,t.mapView==='graph'?'graph':'tree'];
+  const p=S.projects[t.screen];return[p?(p.name||'Без названия'):'Проект',p?projColor(t.screen):null,null]}
+function renderTabs(){
+  const el=$('#tabbar');if(!el)return;ensureTabs();
+  const wide=innerWidth>=760;
+  el.innerHTML=`<div class="tb-tabs" role="tablist">${S.tabs.map(t=>{const [ttl,col,ic]=tabTitle(t);const on=t.id===S.tab;
+    return `<div class="tb-tab" role="tab" aria-selected="${on}" data-tabid="${t.id}" tabindex="0" title="${esc(ttl)}">${col?`<span class="dot" style="background:${col}"></span>`:ic?I[ic]:''}<span class="tb-t">${esc(ttl)}</span>${S.tabs.length>1?`<button class="tb-x" data-tabclose="${t.id}" aria-label="Закрыть вкладку «${esc(ttl)}»" title="Закрыть вкладку">${I.x}</button>`:''}</div>`}).join('')}
+    <button class="tb-add" data-act="tabnew" aria-label="Новая вкладка" title="Новая вкладка (Ctrl+клик по проекту — открыть в новой вкладке)">${I.plus}</button></div>
+    <div class="tb-tools">${PANE?`<button class="tb-btn" data-act="paneclose" aria-label="Закрыть эту панель" title="Закрыть панель">${I.x}</button>`
+      :wide?`<button class="tb-btn" data-act="split-v" aria-pressed="${!!(S.split&&S.split.dir==='row')}" title="Показать рядом (две колонки)" aria-label="Разделить: рядом">${I.splitv}</button><button class="tb-btn" data-act="split-h" aria-pressed="${!!(S.split&&S.split.dir==='col')}" title="Показать друг под другом" aria-label="Разделить: друг под другом">${I.splith}</button>${S.split?`<button class="tb-btn" data-act="split-off" title="Убрать разделение" aria-label="Убрать разделение">${I.x}</button>`:''}`:''}</div>`;
+  const a=el.querySelector('.tb-tab[aria-selected="true"]');if(a&&a.scrollIntoView)a.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function openTab(screen,mapView,background){ensureTabs();syncTab();const t={id:'t'+uid(),screen:screen||'projects',mapView:mapView||S.mapView};
+  const i=S.tabs.findIndex(x=>x.id===S.tab);S.tabs.splice(i+1,0,t);if(!background){S.tab=t.id;S.screen=t.screen;S.mapView=t.mapView;S.panel=false;S.confirmDel=false;render()}else{renderTabs();cacheLocal()}}
+function switchTab(id){syncTab();const t=S.tabs.find(x=>x.id===id);if(!t||id===S.tab)return;S.tab=id;S.screen=t.screen;S.mapView=t.mapView;S.panel=false;S.sel='root';S.confirmDel=false;render()}
+function closeTab(id){ensureTabs();if(S.tabs.length<2)return;const i=S.tabs.findIndex(x=>x.id===id);S.tabs.splice(i,1);
+  if(id===S.tab){const t=S.tabs[Math.max(0,i-1)];S.tab=t.id;S.screen=t.screen;S.mapView=t.mapView;S.panel=false;render()}else{renderTabs();cacheLocal()}}
+
+/* ---------- разделение экрана: вторая панель — ещё один экземпляр приложения ---------- */
+let focusPane=0;
+function paneSrc(){const t=curTab()||{screen:'map',mapView:'graph'};const scr=t.screen==='map'?'map':'projects';
+  return location.pathname+'?pane=1&screen='+encodeURIComponent(S.screen==='map'?'projects':'map')+'&mv='+(S.mapView==='graph'?'tree':'graph')}
+function applySplit(){
+  if(PANE)return;const box=$('#panes');if(!box)return;let p1=$('#pane1'),dv=$('#pdiv');
+  const narrow=innerWidth<760;
+  if(!S.split){if(p1)p1.remove();if(dv)dv.remove();box.className='panes';$('#pane0').style.flexBasis='';$('#pane0').style.removeProperty('--paneh');renderTabs();return}
+  const dir=narrow?'col':S.split.dir;box.className='panes split '+(dir==='row'?'row':'col');
+  if(!p1){dv=document.createElement('div');dv.id='pdiv';dv.className='pdiv';dv.setAttribute('role','separator');dv.setAttribute('aria-label','Граница между панелями — тяните, чтобы изменить размер');dv.tabIndex=0;
+    p1=document.createElement('section');p1.className='pane';p1.id='pane1';
+    const f=document.createElement('iframe');f.title='Вторая панель';f.src=paneSrc();p1.appendChild(f);box.appendChild(dv);box.appendChild(p1);bindDivider(dv)}
+  $('#pane0').style.flexBasis=((S.split.ratio||.5)*100)+'%';markFocus();renderTabs();
+  requestAnimationFrame(()=>{const h=$('#pane0').clientHeight;$('#pane0').style.setProperty('--paneh',h+'px');if(S.screen==='map'){if(S.mapView==='tree'){TVP.init=false;drawTree();treeFit()}else{resize();graphFit()}}})}
+function bindDivider(dv){
+  let drag=false;
+  dv.addEventListener('pointerdown',e=>{drag=true;dv.setPointerCapture(e.pointerId);document.body.classList.add('resizing')});
+  dv.addEventListener('pointermove',e=>{if(!drag)return;const r=$('#panes').getBoundingClientRect();const row=$('#panes').classList.contains('row');
+    let k=row?(e.clientX-r.left)/r.width:(e.clientY-r.top)/r.height;k=Math.min(.82,Math.max(.18,k));S.split.ratio=k;$('#pane0').style.flexBasis=(k*100)+'%'});
+  const end=()=>{if(!drag)return;drag=false;document.body.classList.remove('resizing');cacheLocal();applySplit()};
+  dv.addEventListener('pointerup',end);dv.addEventListener('pointercancel',end);
+  dv.addEventListener('keydown',e=>{const d=(e.key==='ArrowLeft'||e.key==='ArrowUp')?-.05:(e.key==='ArrowRight'||e.key==='ArrowDown')?.05:0;if(!d)return;e.preventDefault();S.split.ratio=Math.min(.82,Math.max(.18,(S.split.ratio||.5)+d));cacheLocal();applySplit()})}
+function markFocus(){const a=$('#pane0'),b=$('#pane1');if(a)a.classList.toggle('focused',!!S.split&&focusPane===0);if(b)b.classList.toggle('focused',!!S.split&&focusPane===1)}
+function paneWin(){const f=$('#pane1 iframe');return f&&f.contentWindow}
+function sendPane(msg){const w=paneWin();if(w)try{w.postMessage(Object.assign({shtab:1},msg),location.origin)}catch(e){}}
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||!e.data.shtab)return;const d=e.data;
+  if(!PANE){if(d.focus){focusPane=1;markFocus()}if(d.closePane){S.split=null;focusPane=0;cacheLocal();applySplit()}}
+  else{if(d.nav){if(d.nav.newTab)openTab(d.nav.screen,d.nav.mapView);else{S.screen=d.nav.screen;if(d.nav.mapView)S.mapView=d.nav.mapView;S.panel=false;S.confirmDel=false;render()}}
+    if(d.skin&&d.skin!==S.skin)applySkin(d.skin)}});
+if(PANE){const tell=()=>{try{parent.postMessage({shtab:1,focus:1},location.origin)}catch(e){}};document.addEventListener('pointerdown',tell,true);document.addEventListener('focusin',tell)}
+else{$('#pane0')&&$('#pane0').addEventListener('pointerdown',()=>{if(focusPane!==0){focusPane=0;markFocus()}},true)}
+window.addEventListener('resize',()=>{if(!PANE)applySplit();else renderTabs()});
+/* другая панель или окно поменяли данные — подхватываем, если сами ничего не сохраняем */
+window.addEventListener('storage',e=>{
+  if(e.key!==LSK&&e.key!==LSK+'.map')return;if(typeof anyPending==='function'&&anyPending())return;if(typeof col!=='undefined'&&col)return;
+  try{if(e.key===LSK)S.projects=JSON.parse(e.newValue||'{}')||{};else{const m=JSON.parse(e.newValue||'null');if(m&&m.root)S.map=m}}catch(x){return}
+  if(!S.map[S.sel])S.sel='root';if(S.screen!=='map'&&S.screen!=='projects'&&!S.projects[S.screen])S.screen='projects';renderSafe()});
+function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
   const today=todayStr();let open=0;for(const pid in S.projects)for(const t of S.projects[pid].tasks)if(t.status!=='done')open++;
   const isMap=S.screen==='map';const curTop=S.projects[S.screen]?S.screen:null;
   const item=(attrs,ic,label,n,cur)=>`<button class="sn-item" ${attrs} aria-current="${cur?'page':'false'}">${ic}<span>${label}</span>${n!=null?`<em class="num">${n}</em>`:''}</button>`;
@@ -1113,7 +1223,7 @@ function renderChips(){
     <div class="sn-list">${topProjects().map(([pid])=>tree(pid,0)).join('')||'<div class="hint" style="padding:6px 10px">Проектов пока нет</div>'}</div>`;
   const t=$('#mbarTitle');if(t)t.textContent=S.screen==='projects'?'Проекты':isMap?(S.mapView==='graph'?'Граф':'Дерево'):(S.projects[S.screen]?S.projects[S.screen].name:'');
 }
-function renderMain(){stopGraph();$('#main').style.removeProperty('--pc');if(S.screen==='map')renderMapScreen();else if(S.screen==='projects')renderProjects();else renderProject()}
+function renderMain(){syncTab();renderTabs();stopGraph();$('#main').style.removeProperty('--pc');if(S.screen==='map')renderMapScreen();else if(S.screen==='projects')renderProjects();else renderProject()}
 
 /* ---------- all projects as a list ---------- */
 const expanded=new Set();
@@ -1836,7 +1946,7 @@ const SKINS=[
 function loadFonts(list){for(const sk of list){if(!sk.fonts||document.getElementById('font-'+sk.id))continue;const l=document.createElement('link');l.rel='stylesheet';l.id='font-'+sk.id;
   l.href='https://fonts.googleapis.com/css2?family='+sk.fonts+'&display=swap';l.onload=()=>{if(document.fonts)document.fonts.ready.then(()=>{updFonts();refreshSkinDeps()})};document.head.appendChild(l)}}
 function refreshSkinDeps(){updFonts();readColors();if(S.screen==='map'){if(S.mapView==='tree')drawTree();else refreshGraph()}}
-function applySkin(id){const sk=SKINS.find(x=>x.id===id)||SKINS[0];S.skin=sk.id;document.documentElement.dataset.skin=sk.id;loadFonts([sk]);cacheLocal();refreshSkinDeps();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
+function applySkin(id){const sk=SKINS.find(x=>x.id===id)||SKINS[0];if(!PANE&&sk.id!==S.skin)setTimeout(()=>sendPane({skin:sk.id}),0);S.skin=sk.id;document.documentElement.dataset.skin=sk.id;loadFonts([sk]);cacheLocal();refreshSkinDeps();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
 function skinPrev(id){return `<div class="skinprev" data-skin="${id}" aria-hidden="true">
   <div class="sp-top"><span class="sp-brand">Ш</span><span class="sp-title">Запуск продукта</span><span class="sp-num">2/5</span></div>
   <div class="sp-bar"><b></b></div>
@@ -1909,6 +2019,14 @@ document.addEventListener('click',e=>{
   if(b.dataset.delnode){const k=b.dataset.delnode;if(!S.map[k])return;
     if(subtree(k).some(x=>S.map[x].project&&S.projects[S.map[x].project])){S.sel=k;S.panel=true;S.confirmNode=k;redrawMap();renderMbar();renderPanel();return}
     const r=deleteBranch(k);redrawMap();renderMbar();renderPanel();toast(r.n>1?`Удалено узлов: ${r.n}`:'Узел удалён',()=>{r.undo();render()});return}
+  if(b.dataset.tabclose){e.stopPropagation();closeTab(b.dataset.tabclose);return}
+  if(b.dataset.act==='tabnew'){openTab('projects');return}
+  if(b.dataset.act==='split-v'||b.dataset.act==='split-h'){const dir=b.dataset.act==='split-v'?'row':'col';S.split=Object.assign({ratio:.5},S.split||{},{dir});focusPane=1;cacheLocal();applySplit();return}
+  if(b.dataset.act==='split-off'){S.split=null;focusPane=0;cacheLocal();applySplit();return}
+  if(b.dataset.act==='paneclose'){try{parent.postMessage({shtab:1,closePane:1},location.origin)}catch(x){}return}
+  if((b.dataset.screen||b.dataset.nav)&&b.closest('#side')){const scr=b.dataset.screen||'map',mv=b.dataset.nav||S.mapView;const nt=e.ctrlKey||e.metaKey;
+    if(!PANE&&S.split&&focusPane===1){document.getElementById('app').classList.remove('navopen');sendPane({nav:{screen:scr,mapView:b.dataset.nav||null,newTab:nt}});return}
+    if(nt){document.getElementById('app').classList.remove('navopen');openTab(scr,mv);return}}
   if(b.dataset.screen){document.getElementById('app').classList.remove('navopen');if(S.screen!==b.dataset.screen){S.screen=b.dataset.screen;S.confirmDel=false;render()}return}
   const a=b.dataset.act;
   if(a==='newproj'){const pid=newProject('Новый проект');addChild('root','Новый проект',{project:pid});persist(pid);persist('map');S.screen=pid;render();const i=$('#projName');i.focus();i.select();return}
@@ -1951,6 +2069,11 @@ document.addEventListener('click',e=>{
   if(b.dataset.z){const box=$('#mapbox');if(b.dataset.z==='fit')treeFit();else treeZoom(b.dataset.z==='in'?1.25:.8,box.clientWidth/2,box.clientHeight/2);return}
 });
 document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.closest('[data-hit]');if(h){e.preventDefault();goHit(h.dataset.hit)}});
+document.addEventListener('auxclick',e=>{if(e.button!==1)return;const b=e.target.closest&&e.target.closest('#side [data-screen],#side [data-nav]');if(!b)return;e.preventDefault();
+  const scr=b.dataset.screen||'map',mv=b.dataset.nav||S.mapView;if(!PANE&&S.split&&focusPane===1)sendPane({nav:{screen:scr,mapView:b.dataset.nav||null,newTab:true}});else openTab(scr,mv)});
+document.addEventListener('mousedown',e=>{if(e.button===1&&e.target.closest&&e.target.closest('#side [data-screen],#side [data-nav]'))e.preventDefault()});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.tb-tab');if(!t||e.target.closest('.tb-x'))return;switchTab(t.dataset.tabid)});
+document.addEventListener('auxclick',e=>{if(e.button!==1)return;const t=e.target.closest&&e.target.closest('.tb-tab');if(t){e.preventDefault();closeTab(t.dataset.tabid)}});
 document.addEventListener('submit',e=>{const fm=e.target;
   if(fm.dataset&&(fm.dataset.addto||fm.dataset.subto)){e.preventDefault();const v=fm.querySelector('input').value.trim();if(!v)return;
     if(fm.dataset.addto){const pid=fm.dataset.addto;S.projects[pid].tasks.push({id:'t'+uid(),title:v,status:'todo',prio:'mid',due:'',notes:'',created:Date.now()});persist(pid)}
@@ -1968,6 +2091,7 @@ document.addEventListener('keydown',e=>{
   if(e.target.id==='gsearch'){if(e.key==='Enter'){const h=searchHits()[0];if(h)goHit(h)}else if(e.key==='Escape'){S.search='';e.target.value='';renderSearch();redrawMap();dirty=true;startLoop()}return}
   if(e.key==='Escape'){if(S.openTask||S.openMemo){closeSheet();return}if(S.showSet){S.showSet=false;$('#gset')?.remove();return}if(S.panel&&e.target.id!=='noteBody'){S.panel=false;renderPanel();redrawMap();return}}
   if(e.target.matches&&e.target.matches('.tr[data-task]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openTask(e.target.dataset.task);return}
+  if(e.target.matches&&e.target.matches('.tb-tab')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();switchTab(e.target.dataset.tabid);return}
   if(e.target.matches&&e.target.matches('.nl-i[data-task]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openTask(e.target.dataset.task);return}
   if(e.target.matches&&e.target.matches('.nl-i[data-memo]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openMemo(e.target.dataset.memo);return}
   if(e.target.matches&&e.target.matches('.mr[data-memo]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openMemo(e.target.dataset.memo);return}
@@ -1985,12 +2109,14 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- boot ---------- */
 try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.parse(lsGet(LSK+'.map')||'null');if(mp&&mp.root)S.map=mp;
-  const ui=JSON.parse(lsGet(LSK+'.ui')||'{}');if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
+  const ui=JSON.parse(lsGet(UIK)||'{}');if(Array.isArray(ui.tabs)&&ui.tabs.length){S.tabs=ui.tabs;S.tab=ui.tab}if(ui.split&&!PANE)S.split=ui.split;
+  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
 if(!S.map)S.map=newMap();
 if(!S.skin)S.skin='night';
 if(S.skin&&S.skin!=='shtab'){document.documentElement.dataset.skin=S.skin;loadFonts([SKINS.find(x=>x.id===S.skin)||SKINS[0]]);updFonts();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
 migrateOld();reconcile();
-render();$('#sync').textContent='Подключаю облако…';
+ensureTabs();{const t=curTab();if(t){S.screen=t.screen;S.mapView=t.mapView}}
+render();applySplit();$('#sync').textContent='Подключаю облако…';
 initStore();
 })();
 </script>

@@ -1,5 +1,5 @@
 // Штаб: офлайн-кэш приложения. Данные проектов в кэш не попадают — они хранятся в базе и на устройстве.
-const V = 'shtab-v5';
+const V = 'shtab-v6';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'];
 self.addEventListener('install', e => {
