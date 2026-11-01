@@ -537,6 +537,23 @@ a.skinbtn{text-decoration:none}
   .mbar-title{font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:13;background:var(--bg)}
 }
+/* tasks & notes rows in the Projects list, virtual leaves on the tree */
+.nl-i{min-height:34px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);cursor:pointer;font-size:13px}
+.nl-i .nl-name{gap:8px}
+.nl-i .ck{width:16px;height:16px;border-width:1.6px;flex:none;margin:0}
+.nl-i .t{color:color-mix(in srgb,var(--ink) 82%,var(--muted))}
+.nl-pr{color:var(--bad);font-weight:700}
+.nl-mi{color:var(--muted);display:inline-flex;flex:none}.nl-mi svg{width:13px;height:13px}
+.nl-prev{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.nl-i .stp{font-size:11px;padding:1px 8px}
+.nl-done .t{color:var(--muted);font-size:12px}
+.nl-tg{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:var(--rs);padding:5px 10px;font-size:12.5px}
+.nl-tg[aria-pressed="true"]{color:var(--ink);background:var(--sunk);border-color:var(--sunk)}
+.nl-tg svg{width:13px;height:13px}
+.node.virt rect.box{stroke-dasharray:4 3;stroke-width:1.2;fill:color-mix(in srgb,var(--surface) 70%,var(--bg))}
+.node.virt text{font-size:13px;font-weight:400}
+.edge.vedge{stroke-width:1.4;stroke-dasharray:4 4}
+@media (max-width:760px){.nl-prev{display:none}.nl-i .nl-st{display:none}}
 /* ---------- Projects: grouped list (style «Ночь») ---------- */
 .nl-top{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line)}
 .nl-h1{margin:0;font-family:var(--f-display);font-weight:var(--dw);font-size:18px}
@@ -747,14 +764,14 @@ const I={
 
 /* ---------- state ---------- */
 const S={projects:{},map:null,screen:'map',mapView:'tree',sel:'root',panel:false,noteMode:'view',openTask:null,confirmDel:false,
-  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
+  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],mapItems:true,pitems:true,tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
 let col=null,firstSnap=true,dl=null;
 const pend={};
 const LSK='shtab.v1';
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
-function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(LSK+'.ui',JSON.stringify({screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1}))}
+function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(LSK+'.ui',JSON.stringify({screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems}))}
 function setSync(s){const el=$('#sync');if(!el)return;el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
   el.textContent=s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Синхронизация выключена: данные лежат только на этом устройстве.':''}
@@ -954,7 +971,19 @@ function topProjects(){return sortedProjects().filter(([id])=>!parentProject(id)
 function projChain(pid){const out=[];let c=parentProject(pid),g=0;while(c&&g++<50){out.unshift(c);c=parentProject(c)}return out}
 function treeStats(pid){let t=0,d=0;const walk=id=>{const p=S.projects[id];t+=p.tasks.length;d+=p.tasks.filter(x=>x.status==='done').length;for(const [c] of childProjects(id))walk(c)};walk(pid);return{t,d,pct:t?Math.round(d/t*100):0}}
 function addSubproject(pid,name){const k=nodeOfProject(pid);const np=newProject(name||'Новый подпроект');addChild(k||'root',S.projects[np].name,{project:np});persist(np);persist('map');return np}
-function projColor(pid){const p=S.projects[pid];return `var(${PCOL[(p?p.color:0)%PCOL.length]})`}
+function topProjOf(pid){return projChain(pid)[0]||pid}
+function projColor(pid){const p=S.projects[topProjOf(pid)];return `var(${PCOL[(p?p.color:0)%PCOL.length]})`}
+/* tasks and notes of a project shown as extra leaves on the maps (not stored in the map) */
+let VN={},VK={};
+function buildVirtual(){VN={};VK={};if(S.mapItems===false)return;
+  for(const id in S.map){const n=S.map[id];const p=n.project&&S.projects[n.project];if(!p)continue;const arr=[];
+    const ts=p.tasks.filter(t=>!(t.nodeId&&S.map[t.nodeId])).sort((a,b)=>(stRank[a.status]-stRank[b.status])||((a.due||'9')<(b.due||'9')?-1:(a.due||'9')>(b.due||'9')?1:0));
+    for(const t of ts){const k='vt:'+t.id;VN[k]={text:t.title||'Без названия',children:[],taskId:t.id,taskPid:n.project,kind:'task'};arr.push(k)}
+    for(const mm of (p.memos||[])){const k='vm:'+mm.id;VN[k]={text:mm.title||'Без названия',children:[],memoId:mm.id,kind:'memo'};arr.push(k)}
+    if(arr.length)VK[id]=arr}}
+const nodeObj=id=>S.map[id]||VN[id];
+function treeKids(id){const n=S.map[id];if(!n)return[];return n.children.filter(c=>S.map[c]).concat(VK[id]||[])}
+function openVirtual(id){const v=VN[id];if(!v)return false;if(v.taskId)openTask(v.taskId);else if(v.memoId)openMemo(v.memoId);return true}
 function stats(p){const t=p.tasks.length,d=p.tasks.filter(x=>x.status==='done').length;return{t,d,pct:t?Math.round(d/t*100):0}}
 function newProject(name){const id='p'+uid();S.projects[id]={name,color:sortedProjects().length%PCOL.length,created:Date.now(),tasks:[]};return id}
 function addChild(par,text,extra){const k='n'+uid();S.map[k]={text,children:[],...(extra||{})};if(par==='root'&&!S.map[k].side)S.map[k].side=pickSide();S.map[par].children.push(k);S.map[par].collapsed=false;return k}
@@ -1085,12 +1114,31 @@ function nlCells(p,st,today,small){const s=stats(p),nx=pNext(p),late=nx&&nx<toda
     <span class="nl-open num">${s.t-s.d}</span>
     <span class="nl-due num ${late?'late':''}">${nx?fmtDate(nx):'—'}</span>
     <span class="nl-st"><span class="nst ${st[0]} ${small?'plain':''}">${st[1]}</span></span>`}
+function nlItems(pid,pad,f,today){
+  if(S.pitems===false)return'';const p=S.projects[pid];if(!p)return'';
+  let ts=p.tasks.filter(t=>t.status!=='done');
+  if(f==='late')ts=ts.filter(t=>t.due&&t.due<today);else if(f==='today')ts=ts.filter(t=>t.due===today);
+  ts.sort((a,b)=>(stRank[a.status]-stRank[b.status])||(prioRank[a.prio]-prioRank[b.prio])||((a.due||'9')<(b.due||'9')?-1:(a.due||'9')>(b.due||'9')?1:0));
+  const tie='<span class="nl-tie" aria-hidden="true"></span>';
+  let h=ts.map(t=>{const late=t.due&&t.due<today;const st=STATUS.find(x=>x[0]===t.status)[1];
+    return `<div class="nl-row nl-i" data-task="${t.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<button class="ck ${t.status}" data-ck="${t.id}" aria-label="Отметить выполненной"></button><span class="t">${esc(t.title||'Без названия')}</span>${t.prio==='high'?'<span class="nl-pr" title="Высокий приоритет">!</span>':''}</span>
+      <span class="nl-prog"></span><span class="nl-open"></span><span class="nl-due num ${late?'late':''}">${t.due?fmtDate(t.due):''}</span>
+      <span class="nl-st"><button class="stp ${t.status}" data-cyc="${t.id}" title="Сменить статус">${st}</button></span>
+      <span class="nl-x"><button class="icodel" data-deltask="${t.id}" aria-label="Удалить задачу «${esc(t.title)}»" title="Удалить">${I.trash}</button></span></div>`}).join('');
+  if(f==='all'||f==='active'){
+    h+=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).map(mm=>`<div class="nl-row nl-i" data-memo="${mm.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<span class="nl-mi">${I.note}</span><span class="t">${esc(mm.title||'Без названия')}</span><span class="nl-prev">${esc(memoPreview(mm))}</span></span>
+      <span class="nl-prog"></span><span class="nl-open"></span><span class="nl-due num">${mm.updated?fmtDate(ymd(new Date(mm.updated))):''}</span><span class="nl-st"><span class="nst plain">заметка</span></span>
+      <span class="nl-x"><button class="icodel" data-delmemo="${mm.id}" aria-label="Удалить заметку «${esc(mm.title)}»" title="Удалить">${I.trash}</button></span></div>`).join('');
+    const dn=p.tasks.filter(t=>t.status==='done').length;
+    if(dn&&f==='all')h+=`<div class="nl-row nl-i nl-done" data-screen="${pid}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<span class="t">Готово: ${dn} — открыть проект</span></span></div>`;
+  }
+  return h}
 function nlSubs(pid,depth,f,today){
   return childProjects(pid).filter(([c])=>treeMatch(c,f,today)).map(([c,cp])=>{const st=pStatus(cp,today);
     return `<div class="nl-row nl-s" data-screen="${c}" role="button" tabindex="0">
       <span class="nl-name" style="padding-left:${16+depth*22}px"><span class="nl-tie" aria-hidden="true"></span><span class="dot" style="background:${projColor(c)}"></span><span class="t">${esc(cp.name||'Без названия')}</span>${(cp.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.note}${cp.memos.length}</span>`:''}</span>
       ${nlCells(cp,st,today,true)}
-      <span class="nl-x"><button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlSubs(c,depth+1,f,today)}).join('')}
+      <span class="nl-x"><button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlItems(c,16+depth*22+22,f,today)+nlSubs(c,depth+1,f,today)}).join('')}
 function renderProjects(){
   const list=sortedProjects();const today=todayStr();let f=S.pfilter||'all';if(!NF.some(x=>x[0]===f))f='all';
   let open=0,late=0;for(const [,p] of list)for(const t of p.tasks)if(t.status!=='done'){open++;if(t.due&&t.due<today)late++}
@@ -1102,13 +1150,14 @@ function renderProjects(){
         ${nlCells(p,st,today,false)}
         <span class="nl-x"><button class="icodel" data-delsub="${pid}" aria-label="Удалить проект «${esc(p.name)}»" title="Удалить">${I.trash}</button></span>
       </div>${nlAsk(pid,nsub)}
-      ${collapsed?'':nlSubs(pid,0,f,today)+(f==='all'?`<form class="nl-add" data-subto="${pid}"><span class="nl-tie" aria-hidden="true"></span><input placeholder="+ Новый подпроект" maxlength="80" autocomplete="off" aria-label="Новый подпроект в «${esc(p.name)}»"></form>`:'')}
+      ${collapsed?'':nlItems(pid,16,f,today)+nlSubs(pid,0,f,today)+(f==='all'?`<form class="nl-add" data-subto="${pid}"><span class="nl-tie" aria-hidden="true"></span><input placeholder="+ Новый подпроект" maxlength="80" autocomplete="off" aria-label="Новый подпроект в «${esc(p.name)}»"></form>`:'')}
     </div>`}).join('');
   const allClosed=topProjects().length&&topProjects().every(([pid])=>S.pcol.includes(pid));
   $('#main').innerHTML=`<section class="nl-top">
       <h1 class="nl-h1">Проекты</h1>
       <div class="nl-seg" role="group" aria-label="Фильтр">${NF.map(([k,l])=>`<button data-pf="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
       <span class="nl-sum num">${list.length} ${plural(list.length,'проект','проекта','проектов')} · ${open} открыто${late?` · <span class="late">${late} просрочено</span>`:''}</span>
+      <button class="nl-tg" data-act="pitems" aria-pressed="${S.pitems!==false}">${I.list} Задачи и заметки</button>
       ${topProjects().length?`<button class="ghost" data-act="${allClosed?'expandall':'collapseall'}">${allClosed?'Развернуть все':'Свернуть все'}</button>`:''}
       <button class="btn" data-act="newproj">${I.plus} Новый проект</button>
     </section>
@@ -1190,7 +1239,7 @@ function deleteTask(pid,tid){
   persist(pid);
   return ()=>{S.projects[pid]=snapP;S.map=snapM;persist(pid);persist('map')};
 }
-function rerenderProj(){if(S.screen==='projects')renderProjects();else if(S.projects[S.screen]){renderListOnly();renderSubs();renderMemos()}}
+function rerenderProj(){if(S.screen==='projects')renderProjects();else if(S.screen==='map')redrawMap();else if(S.projects[S.screen]){renderListOnly();renderSubs();renderMemos()}}
 
 /* ---------- notes (заметки) inside a project: p.memos ---------- */
 function memoPreview(m){const l=(m.body||'').split('\n').map(x=>x.replace(/^#+\s*|^\s*[-*]\s+(\[[ xX]\]\s*)?/g,'').replace(/\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g,(a,b,c)=>c||b).trim()).find(Boolean);return l||''}
@@ -1218,7 +1267,7 @@ function renderMemoSheet(){
     <div class="hint">${m.updated?'Изменена '+fmtDate(ymd(new Date(m.updated)))+' в '+new Date(m.updated).toTimeString().slice(0,5):''}</div></div>`;
   L.appendChild(el);
   el.addEventListener('click',e=>{if(e.target===el)closeSheet()});
-  const save=()=>{m.updated=Date.now();persist(pid);if(S.screen===pid)renderMemos();else if(S.screen==='projects')renderProjects()};
+  const save=()=>{m.updated=Date.now();persist(pid);if(S.screen===pid)renderMemos();else if(S.screen==='projects')renderProjects();else if(S.screen==='map')redrawMap()};
   el.querySelector('#memoTitle').oninput=e=>{m.title=e.target.value;save()};
   const ta=el.querySelector('#memoBody');if(ta){ta.oninput=()=>{m.body=ta.value;save()};setTimeout(()=>{ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)},30)}
   el.querySelectorAll('[data-mm]').forEach(b=>b.onclick=()=>{S.memoMode=b.dataset.mm;renderMemoSheet()});
@@ -1349,13 +1398,13 @@ const MAXW=230,VG=12,HG=46;
 let TG={};
 const TVP={x:0,y:0,k:1,init:false};
 function layoutTree(){
-  const m=S.map,G={};
-  const metrics=id=>{const n=m[id],root=id==='root';const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
-    let extra=root?36:(taskOf(n)?42:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
-    return{label,st,w:Math.max(root?120:56,textW(label,font)+extra),h:root?48:(n.project?38:34)}};
-  const size=id=>{const g=metrics(id);G[id]=g;const kids=m[id].collapsed?[]:m[id].children.filter(c=>m[c]);let kh=0;kids.forEach((c,i)=>{kh+=size(c)+(i?VG:0)});g.kh=kh;g.sub=Math.max(g.h,kh);return g.sub};
-  const place=(id,x,top,dir,branch,depth)=>{const g=G[id],n=m[id];g.cy=top+g.sub/2;g.x=dir>0?x:x-g.w;g.y=g.cy-g.h/2;g.dir=dir;g.branch=branch;g.depth=depth;
-    if(n.collapsed)return;let y=g.cy-g.kh/2;const nx=dir>0?g.x+g.w+HG:g.x-HG;for(const c of n.children){if(!m[c])continue;place(c,nx,y,dir,branch,depth+1);y+=G[c].sub+VG}};
+  buildVirtual();const m=S.map,G={};
+  const metrics=id=>{const n=nodeObj(id),root=id==='root',virt=!m[id];const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
+    let extra=root?36:((taskOf(n)||n.memoId)?42:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
+    return{label,st,w:Math.max(root?120:56,textW(label,font)+extra),h:root?48:(n.project?38:virt?30:34)}};
+  const size=id=>{const g=metrics(id);G[id]=g;const n=nodeObj(id);const kids=n.collapsed?[]:treeKids(id);let kh=0;kids.forEach((c,i)=>{kh+=size(c)+(i?VG:0)});g.kh=kh;g.sub=Math.max(g.h,kh);return g.sub};
+  const place=(id,x,top,dir,branch,depth)=>{const g=G[id],n=nodeObj(id);g.cy=top+g.sub/2;g.x=dir>0?x:x-g.w;g.y=g.cy-g.h/2;g.dir=dir;g.branch=branch;g.depth=depth;
+    if(n.collapsed)return;let y=g.cy-g.kh/2;const nx=dir>0?g.x+g.w+HG:g.x-HG;for(const c of treeKids(id)){place(c,nx,y,dir,branch,depth+1);y+=G[c].sub+VG}};
   const R=G.root=metrics('root');R.depth=0;R.branch=null;R.x=-R.w/2;R.y=-R.h/2;R.cy=0;R.dir=1;
   const kids=m.root.children.filter(c=>m[c]);const right=kids.filter(c=>m[c].side!=='left'),left=kids.filter(c=>m[c].side==='left');
   const stack=(arr,dir)=>{let tot=0;arr.forEach((c,i)=>{tot+=size(c)+(i?VG*1.6:0)});let y=-tot/2;arr.forEach(c=>{place(c,dir>0?R.w/2+HG+10:-R.w/2-HG-10,y,dir,c,1);y+=G[c].sub+VG*1.6})};
@@ -1365,7 +1414,7 @@ function layoutTree(){
 function branchColor(bid){if(!bid)return'var(--ink)';const n=S.map[bid];if(n&&n.project&&S.projects[n.project])return projColor(n.project);const i=S.map.root.children.indexOf(bid);return `var(${PCOL[(i<0?0:i)%PCOL.length]})`}
 function mountTree(){
   $('#mapbox').innerHTML=`<svg id="tsvg" aria-label="Карта проектов, дерево"><g id="tg"></g></svg>
-    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>○ задача</span><span style="color:var(--warn)">◐ в работе</span><span style="color:var(--ok)">● готово</span><span>⊕ ветка свёрнута, число — сколько внутри</span></span></div>
+    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>○ задача</span><span style="color:var(--warn)">◐ в работе</span><span style="color:var(--ok)">● готово</span><span>⊕ ветка свёрнута, число — сколько внутри</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.list} Задачи и заметки</button></div>
     <div class="mtools"><button class="gbtn ico" data-z="in" aria-label="Приблизить">${I.plus}</button><button class="gbtn ico" data-z="out" aria-label="Отдалить">${I.minus}</button><button class="gbtn ico" data-z="fit" aria-label="Вписать карту">${I.fit}</button></div>
     <div class="mbar" id="mbar"></div><div id="npwrap"></div>`;
   drawTree();renderMbar();renderPanel();
@@ -1374,24 +1423,24 @@ function mountTree(){
 }
 function drawTree(){
   const g=$('#tg');if(!g)return;const m=S.map;TG=layoutTree();let html='';
-  const edges=id=>{const n=m[id];if(n.collapsed)return;const a=TG[id];for(const c of n.children){const b=TG[c];if(!b||b.x===undefined)continue;
-    const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;
-    html+=`<path class="edge" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${b.depth>1?.6:.9}"/>`;edges(c)}};
+  const edges=id=>{const n=nodeObj(id);if(n.collapsed)return;const a=TG[id];for(const c of treeKids(id)){const b=TG[c];if(!b||b.x===undefined)continue;
+    const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;const virt=!m[c];
+    html+=`<path class="edge${virt?' vedge':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${virt?.45:b.depth>1?.6:.9}"/>`;edges(c)}};
   edges('root');
-  for(const id in TG){const a=TG[id];if(a.x===undefined)continue;const n=m[id];const root=id==='root';const col=branchColor(a.branch);const t=taskOf(n);
+  for(const id in TG){const a=TG[id];if(a.x===undefined)continue;const n=nodeObj(id);const virt=!m[id];const root=id==='root';const col=branchColor(a.branch);const t=taskOf(n);
     const isP=n.project&&S.projects[n.project];
-    const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
-    let mark='';if(t){const cx=a.x+15,cy=a.cy;
-      mark=t.status==='done'?`<circle cx="${cx}" cy="${cy}" r="7" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
+    let mark='';const cx=a.x+15,cy=a.cy;
+    if(t){mark=t.status==='done'?`<circle cx="${cx}" cy="${cy}" r="7" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
        :t.status==='doing'?`<circle cx="${cx}" cy="${cy}" r="6.5" fill="none" stroke="var(--warn)" stroke-width="1.8"/><path d="M${cx},${cy-6.5} A6.5,6.5 0 0 1 ${cx},${cy+6.5} Z" fill="var(--warn)"/>`
        :`<circle cx="${cx}" cy="${cy}" r="6.5" fill="none" stroke="${t.due&&t.due<todayStr()?'var(--bad)':'var(--muted)'}" stroke-width="1.8"/>`}
-    const tx=root?a.x+a.w/2:(t?a.x+28:a.x+13);
-    html+=`<g class="${cls}" data-node="${id}">${id===S.sel?`<rect class="ring" x="${a.x-5}" y="${a.y-5}" width="${a.w+10}" height="${a.h+10}" rx="${root?16:12}"/>`:''}<rect class="box" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="${root?12:9}" stroke="${root?'var(--ink)':col}"/>${mark}<text x="${tx}" y="${a.cy}" ${root?'text-anchor="middle"':''} ${t&&t.status==='done'?'fill-opacity=".55"':''}>${esc(a.label)}${a.st?`<tspan class="st">${esc(a.st)}</tspan>`:''}</text><title>${esc(n.text)}</title></g>`;
-    if(n.children.length&&!root){const cx=a.dir>0?a.x+a.w+9:a.x-9;
-      html+=`<g class="tog" data-tog="${id}"><title>${n.collapsed?'Развернуть ветку':'Свернуть ветку'}</title><circle cx="${cx}" cy="${a.cy}" r="8" stroke="${col}"/><text x="${cx}" y="${a.cy}" fill="${col}">${n.collapsed?subtree(id).length-1:'−'}</text></g>`}}
+    else if(n.memoId){mark=`<path d="M${cx-5},${cy-7}h7l3,3v11h-10z M${cx+2},${cy-7}v3h3 M${cx-2.5},${cy}h5 M${cx-2.5},${cy+3}h5" fill="none" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`}
+    const tx=root?a.x+a.w/2:((t||n.memoId)?a.x+28:a.x+13);
+    html+=`<g class="${cls}" data-node="${id}">${id===S.sel?`<rect class="ring" x="${a.x-5}" y="${a.y-5}" width="${a.w+10}" height="${a.h+10}" rx="${root?16:12}"/>`:''}<rect class="box" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="${root?12:9}" stroke="${root?'var(--ink)':col}"/>${mark}<text x="${tx}" y="${a.cy}" ${root?'text-anchor="middle"':''} ${t&&t.status==='done'?'fill-opacity=".55"':''}>${esc(a.label)}${a.st?`<tspan class="st">${esc(a.st)}</tspan>`:''}</text><title>${esc(n.text)}${virt?(n.memoId?' — заметка':' — задача'):''}</title></g>`;
+    if(!virt&&treeKids(id).length&&!root){const tcx=a.dir>0?a.x+a.w+9:a.x-9;
+      html+=`<g class="tog" data-tog="${id}"><title>${n.collapsed?'Развернуть ветку':'Свернуть ветку'}</title><circle cx="${tcx}" cy="${a.cy}" r="8" stroke="${col}"/><text x="${tcx}" y="${a.cy}" fill="${col}">${n.collapsed?Math.max(1,subtree(id).length-1+(VK[id]||[]).length):'−'}</text></g>`}}
   g.innerHTML=html;
 }
-const delAsk=id=>{const ps=subtree(id).filter(k=>S.map[k].project&&S.projects[S.map[k].project]);return `<div class="delask">Удалить ${ps.length===1&&ps[0]===id?'проект «'+esc(S.projects[S.map[id].project].name)+'»':'ветку и '+ps.length+' '+plural(ps.length,'проект','проекта','проектов')} со всеми задачами? <button class="danger" data-m="del">Удалить</button><button data-m="delno">Отмена</button></div>`};
 function renderMbar(){
   const bar=$('#mbar');if(!bar)return;const id=S.sel,n=S.map[id];if(!n){bar.innerHTML='';return}
   const root=id==='root',t=taskOf(n),pid=projOf(id),isP=n.project&&S.projects[n.project];
@@ -1428,11 +1477,12 @@ function bindTree(){
     if(pts.size===0){svg.classList.remove('grab');
       if(tap&&tgt&&tgt.closest){const tg=tgt.closest('[data-tog]'),nd=tgt.closest('[data-node]');
         if(tg){const n=S.map[tg.dataset.tog];n.collapsed=!n.collapsed;persist('map');drawTree()}
+        else if(nd&&openVirtual(nd.dataset.node)){}
         else if(nd){S.sel=nd.dataset.node;S.confirmNode=null;drawTree();renderMbar();if(S.panel)renderPanel()}}
       st=null}
     else if(pts.size===1){const[q]=[...pts.values()];st={x:q.x,y:q.y,vx:TVP.x,vy:TVP.y,target:null};moved=true}};
   svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
-  svg.addEventListener('dblclick',e=>{const nd=e.target.closest('[data-node]');if(nd){S.sel=nd.dataset.node;renderMbar();const i=$('#nodeText');i.focus();i.select()}});
+  svg.addEventListener('dblclick',e=>{const nd=e.target.closest('[data-node]');if(nd&&VN[nd.dataset.node])return;if(nd){S.sel=nd.dataset.node;renderMbar();const i=$('#nodeText');i.focus();i.select()}});
   svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect();treeZoom(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
 }
 
@@ -1451,12 +1501,18 @@ function buildGraph(){
   const addE=(a,b,kind)=>{if(a===b)return;const k=a<b?a+'|'+b:b+'|'+a;if(keys.has(k))return;keys.add(k);edges.push({a,b,kind})};
   for(const id in m)nodes.push({id,kind:'node',label:m[id].text||'…'});
   for(const id in m)for(const c of m[id].children)if(m[c])addE(id,c,'tree');
+  buildVirtual();
+  for(const pid in VK)if(m[pid])for(const k of VK[pid]){const v=VN[k];nodes.push({id:k,kind:v.kind,label:v.text,src:pid,taskId:v.taskId,taskPid:v.taskPid,memoId:v.memoId});addE(pid,k,'tree')}
   const ghosts={};
   for(const id in m)for(const t of linksOf(m[id].body)){const tid=nodeByText(t);if(tid)addE(id,tid,'link');else{const gid='ghost:'+lc(t);if(!ghosts[gid]){ghosts[gid]=1;nodes.push({id:gid,kind:'ghost',label:t,src:id})}addE(id,gid,'link')}}
   const deg=new Map();for(const e of edges){deg.set(e.a,(deg.get(e.a)||0)+1);deg.set(e.b,(deg.get(e.b)||0)+1)}
   let out=nodes;if(!S.gopt.orphans)out=nodes.filter(n=>deg.get(n.id)||n.id==='root');
   const ids=new Set(out.map(n=>n.id));return{nodes:out,edges:edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),deg};
 }
+function branchOfNode(id,par){let c=id,g=0;while(c&&c!=='root'&&g++<200){const p=par.get(c);if(p==='root'||p==null)return c;c=p}return null}
+function branchHex(bid){if(!bid)return colors.ink;const n=S.map[bid];if(n&&n.project&&S.projects[n.project]){const tp=S.projects[topProjOf(n.project)];return colors.b[(tp?tp.color:0)%PCOL.length]}
+  const i=S.map.root.children.indexOf(bid);return colors.b[(i<0?0:i)%PCOL.length]}
+function statusHex(t){if(!t)return null;if(t.status==='done')return colors.ok;if(t.status!=='done'&&t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
 function nodeColor(id){
   const n=S.map[id];if(id==='root')return colors.ink;
   const t=taskOf(n);if(t){if(t.status==='done')return colors.ok;if(t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
@@ -1465,7 +1521,7 @@ function nodeColor(id){
 function computeTargets(){
   const N=SIM.nodes;const kids=new Map();const add=(p,c)=>{(kids.get(p)||kids.set(p,[]).get(p)).push(c)};
   for(const id in S.map)if(N.has(id))for(const c of S.map[id].children)if(N.has(c))add(id,c);
-  for(const n of SIM.list)if(n.kind==='ghost'&&n.src&&N.has(n.src))add(n.src,n.id);
+  for(const n of SIM.list)if((n.kind==='ghost'||n.kind==='task'||n.kind==='memo')&&n.src&&N.has(n.src))add(n.src,n.id);
   const w=new Map(),dep=new Map();let maxD=1;
   const weigh=(id,d,seen)=>{if(seen.has(id))return 0;seen.add(id);dep.set(id,d);maxD=Math.max(maxD,d);const ks=kids.get(id)||[];let t=0;for(const c of ks)t+=weigh(c,d+1,seen);t=Math.max(1,t);w.set(id,t);return t};
   const seen=new Set();if(!N.has('root'))return;weigh('root',0,seen);
@@ -1491,8 +1547,16 @@ function refreshGraph(){
     s.isP=!!isP;const sz=S.gopt.size||1;
     s.r=(S.gopt.sizeMode==='same'?(n.id==='root'?10:isP?8:n.kind==='ghost'?5:6):(n.id==='root'?13:n.kind==='ghost'?3.6+Math.min(3,Math.sqrt(d)):isP?8+Math.min(5,Math.sqrt(d)):4.5+Math.min(8,Math.sqrt(d)*1.9)))*sz;
     let lbl=n.label||'';if(lbl.length>34)lbl=lbl.slice(0,33)+'…';const big=n.id==='root'||isP;s.lw=textW(lbl,`${big?600:500} ${(big?13.5:12.5)*(S.gopt.text||1)}px ${F_BODY}`)+6;
-    s.color=n.kind==='ghost'?colors.ghost:nodeColor(n.id);next.set(n.id,s)}
-  SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b)}));SIM.adj=adj;
+    next.set(n.id,s)}
+  {const par=new Map();for(const e of g.edges)if(e.kind==='tree')par.set(e.b,e.a);
+   for(const s of next.values()){
+     if(s.kind==='ghost'){s.color=colors.ghost;s.ring=null;s.shape=null;continue}
+     if(s.id==='root'){s.color=colors.ink;s.ring=null;s.shape=null;continue}
+     s.color=branchHex(branchOfNode(s.id,par));
+     const t=s.kind==='task'?(S.projects[s.taskPid]||{tasks:[]}).tasks.find(x=>x.id===s.taskId):(S.map[s.id]?taskOf(S.map[s.id]):null);
+     s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'sq':null;
+     if(s.kind==='task'||s.kind==='memo')s.r=4.6*(S.gopt.size||1)}}
+  SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'?next.get(e.b).color:null}));SIM.adj=adj;
   if(S.gopt.group){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else for(const n of SIM.list){n.tx=null;n.ty=null}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
   if(sig!==SIM.sig){SIM.sig=sig;if(fresh===SIM.list.length&&fresh){SIM.alpha=1;for(let i=0;i<320;i++)tick();SIM.alpha=.1;if(!GVP.init)graphFit()}else SIM.alpha=Math.max(SIM.alpha,.45)}
@@ -1528,12 +1592,14 @@ function draw(){
   const dim=id=>(F&&!F.has(id))||(M&&!M.has(id));const sel=S.panel?S.sel:null;
   ctx.lineCap='round';
   for(const e of SIM.edges){const hl=hover&&(e.a===hover.id||e.b===hover.id);const dm=(F&&!hl)||(M&&dim(e.a)&&dim(e.b));
-    ctx.globalAlpha=dm?.1:hl?.95:e.kind==='link'?.6:.8;ctx.strokeStyle=hl?colors.accent:colors.edge;ctx.lineWidth=(hl?1.7:e.kind==='tree'?1.2:1)/Math.sqrt(v.k);
+    ctx.globalAlpha=dm?.1:hl?.95:e.kind==='link'?.6:(e.bc?.5:.8);ctx.strokeStyle=hl?colors.accent:(e.bc||colors.edge);ctx.lineWidth=(hl?1.7:e.kind==='tree'?1.2:1)/Math.sqrt(v.k);
     ctx.setLineDash(e.kind==='link'?[4/v.k,3/v.k]:[]);ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);ctx.lineTo(e.t.x,e.t.y);ctx.stroke()}
   ctx.setLineDash([]);
   for(const n of SIM.list){ctx.globalAlpha=dim(n.id)?.16:1;const col=hover&&hover.id===n.id?colors.accent:n.color;
     if(n.kind==='ghost'){ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.fillStyle=colors.bg;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill();ctx.stroke()}
-    else{ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill()}
+    else if(n.shape==='sq'){ctx.fillStyle=col;const r=n.r*.95;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(n.x-r,n.y-r,r*2,r*2,r*.35);else ctx.rect(n.x-r,n.y-r,r*2,r*2);ctx.fill()}
+    else{if(n.done)ctx.globalAlpha*=.55;ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill()}
+    if(n.ring){ctx.strokeStyle=n.ring;ctx.lineWidth=Math.max(1.6,n.r*.45);ctx.beginPath();ctx.arc(n.x,n.y,n.r+ctx.lineWidth*.6,0,Math.PI*2);ctx.stroke()}
     if(n.id===sel){ctx.globalAlpha=1;ctx.strokeStyle=colors.accent;ctx.lineWidth=2/v.k;ctx.beginPath();ctx.arc(n.x,n.y,n.r+4/v.k,0,Math.PI*2);ctx.stroke()}}
   // labels live in graph space (they zoom with the graph, as in Obsidian), so the no-overlap spacing holds at any zoom
   ctx.textAlign='center';ctx.textBaseline='top';const ts=S.gopt.text||1;
@@ -1558,6 +1624,7 @@ function mountGraph(){
   $('#mapbox').innerHTML=`<canvas id="gcv" aria-label="Карта проектов, граф"></canvas>
     <div class="mtop">${searchBox()}
       <button class="gbtn pri" data-g="new">${I.plus} Узел</button>
+      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.list} Задачи и заметки</button>
       <button class="gbtn" data-g="set" aria-pressed="${S.showSet}">${I.gear} Настройки</button>
       <button class="gbtn ico" data-g="fit" aria-label="Показать весь граф">${I.fit}</button>
     </div>${S.showSet?setPanel():''}
@@ -1596,7 +1663,7 @@ function bindSet(){
   const sm=$('#optSizeMode');if(sm)sm.addEventListener('change',()=>{S.gopt.sizeMode=sm.value;cacheLocal();refreshGraph();SIM.alpha=Math.max(SIM.alpha,.5);startLoop();renderLegend()});
 }
 function renderLegend(){const el=$('#glegend');if(!el)return;
-  el.innerHTML=`<span><i class="lg" style="background:var(--ink)"></i>центр</span><span><i class="lg" style="background:var(--b1)"></i>проект</span><span><i class="lg" style="background:var(--g-node)"></i>идея</span><span><i class="lg" style="background:var(--muted)"></i>задача</span><span><i class="lg" style="background:var(--warn)"></i>в работе</span><span><i class="lg" style="background:var(--ok)"></i>готово</span><span><i class="lg" style="background:var(--bad)"></i>просрочено</span><span><i class="lg hollow"></i>ссылка на несуществующий узел</span><span class="lgn">${S.gopt.sizeMode==='same'?'Размер одинаковый':'Чем больше кружок — тем больше у узла связей'} · пунктир — [[ссылка]] из заметки</span>`}
+  el.innerHTML=`<span><i class="lg" style="background:var(--b1)"></i><i class="lg" style="background:var(--b2);margin-left:-3px"></i>цвет — проект и вся его ветка</span><span><i class="lg" style="background:transparent;box-shadow:0 0 0 2px var(--warn)"></i>кольцо — статус задачи</span><span><i class="lg" style="border-radius:2px;background:var(--muted)"></i>квадрат — заметка</span><span><i class="lg hollow"></i>ссылка на несуществующий узел</span><span class="lgn">кольцо: серое — сделать, жёлтое — в работе, зелёное — готово, красное — просрочено · пунктир — [[ссылка]] из заметки</span>`}
 function bindGraph(){
   const pts=new Map();let st=null,moved=false,pinch=null,drag=null;
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const p=gpt(e);pts.set(e.pointerId,p);moved=false;
@@ -1617,6 +1684,8 @@ function bindGraph(){
   cv.addEventListener('wheel',e=>{e.preventDefault();const p=gpt(e);graphZoom(Math.exp(-e.deltaY*.0016),p.x,p.y)},{passive:false});
 }
 function onGraphTap(n){
+  if(n.kind==='task'){openTask(n.taskId);return}
+  if(n.kind==='memo'){openMemo(n.memoId);return}
   if(n.kind==='ghost'){const k=addChild(n.src&&S.map[n.src]?n.src:'root',n.label);persist('map');S.sel=k;S.panel=true;S.noteMode='view';refreshGraph();renderPanel();toast('Узел «'+n.label+'» создан');return}
   S.sel=n.id;S.panel=true;S.noteMode='view';renderPanel();dirty=true;startLoop();setTimeout(()=>graphCenter(n.id),20);
 }
@@ -1780,6 +1849,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.pr){const f=findTask(b.dataset.pr);if(!f)return;f.t.prio=PR_NEXT[f.t.prio]||'mid';afterTaskChange(f.pid);return}
   if(b.dataset.tsort){const k=b.dataset.tsort;S.tsort=S.tsort.k===k?{k,dir:-S.tsort.dir}:{k,dir:1};renderListOnly();return}
   if(b.dataset.showdone!==undefined){S.showDone=!S.showDone;renderListOnly();return}
+  if(b.dataset.act==='pitems'){S.pitems=S.pitems===false;cacheLocal();renderProjects();return}
   if(b.dataset.ptasks){const pid=b.dataset.ptasks,i=S.ptasks.indexOf(pid);if(i>=0)S.ptasks.splice(i,1);else S.ptasks.push(pid);cacheLocal();renderProjects();return}
   if(b.dataset.act==='tasks-show'){S.ptasks=Object.keys(S.projects);cacheLocal();renderProjects();return}
   if(b.dataset.act==='tasks-hide'){S.ptasks=[];cacheLocal();renderProjects();return}
@@ -1827,6 +1897,7 @@ document.addEventListener('click',e=>{
     if(x==='new'){const par=S.panel&&S.map[S.sel]?S.sel:'root';const k=addChild(par,'Новая идея');persist('map');S.sel=k;S.panel=true;S.noteMode='view';refreshGraph();renderPanel();setTimeout(()=>{graphCenter(k);const t=$('#noteTitle');if(t){t.focus();t.select()}},40)}
     else if(x==='set'){S.showSet=!S.showSet;const ex=$('#gset');if(ex)ex.remove();else{$('#mapbox').insertAdjacentHTML('beforeend',setPanel());bindSet()}b.setAttribute('aria-pressed',S.showSet)}
     else if(x==='fit')graphFit();
+    else if(x==='items'){S.mapItems=S.mapItems===false;b.setAttribute('aria-pressed',S.mapItems!==false);cacheLocal();GVP.auto=true;TVP.init=false;redrawMap();if(S.mapView==='tree')treeFit()}
     else if(x==='reset'){S.gopt=Object.assign({},GDEF);cacheLocal();$('#gset')?.remove();$('#mapbox').insertAdjacentHTML('beforeend',setPanel());bindSet();refreshGraph();renderLegend();SIM.alpha=.8;startLoop()}
     return}
   if(b.dataset.z){const box=$('#mapbox');if(b.dataset.z==='fit')treeFit();else treeZoom(b.dataset.z==='in'?1.25:.8,box.clientWidth/2,box.clientHeight/2);return}
@@ -1849,6 +1920,8 @@ document.addEventListener('keydown',e=>{
   if(e.target.id==='gsearch'){if(e.key==='Enter'){const h=searchHits()[0];if(h)goHit(h)}else if(e.key==='Escape'){S.search='';e.target.value='';renderSearch();redrawMap();dirty=true;startLoop()}return}
   if(e.key==='Escape'){if(S.openTask||S.openMemo){closeSheet();return}if(S.showSet){S.showSet=false;$('#gset')?.remove();return}if(S.panel&&e.target.id!=='noteBody'){S.panel=false;renderPanel();redrawMap();return}}
   if(e.target.matches&&e.target.matches('.tr[data-task]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openTask(e.target.dataset.task);return}
+  if(e.target.matches&&e.target.matches('.nl-i[data-task]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openTask(e.target.dataset.task);return}
+  if(e.target.matches&&e.target.matches('.nl-i[data-memo]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openMemo(e.target.dataset.memo);return}
   if(e.target.matches&&e.target.matches('.mr[data-memo]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openMemo(e.target.dataset.memo);return}
   if(e.target.matches&&e.target.matches('tr[data-task]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openTask(e.target.dataset.task);return}
   if(e.target.matches&&e.target.matches('tr[data-screen]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();S.screen=e.target.dataset.screen;render();return}
@@ -1864,7 +1937,7 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- boot ---------- */
 try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.parse(lsGet(LSK+'.map')||'null');if(mp&&mp.root)S.map=mp;
-  const ui=JSON.parse(lsGet(LSK+'.ui')||'{}');if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
+  const ui=JSON.parse(lsGet(LSK+'.ui')||'{}');if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
 if(!S.map)S.map=newMap();
 if(!S.skin)S.skin='night';
 if(S.skin&&S.skin!=='shtab'){document.documentElement.dataset.skin=S.skin;loadFonts([SKINS.find(x=>x.id===S.skin)||SKINS[0]]);updFonts();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
