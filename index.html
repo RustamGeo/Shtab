@@ -747,7 +747,7 @@ const I={
 
 /* ---------- state ---------- */
 const S={projects:{},map:null,screen:'map',mapView:'tree',sel:'root',panel:false,noteMode:'view',openTask:null,confirmDel:false,
-  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1},search:'',showSet:false,pcol:[],ptasks:[],tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
+  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
 let col=null,firstSnap=true,dl=null;
 const pend={};
 const LSK='shtab.v1';
@@ -1437,7 +1437,7 @@ function bindTree(){
 }
 
 /* ===== Граф (как Graph view в Obsidian) ===== */
-const GDEF={labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1};
+const GDEF={labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1};
 const SIM={nodes:new Map(),list:[],edges:[],adj:new Map(),alpha:0,sig:''};
 const GVP={x:0,y:0,k:1,init:false};
 let cv=null,ctx=null,dpr=1,raf=0,dirty=true,hover=null,colors={b:[]},ro=null;
@@ -1462,6 +1462,24 @@ function nodeColor(id){
   const t=taskOf(n);if(t){if(t.status==='done')return colors.ok;if(t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
   if(n.project&&S.projects[n.project])return colors.b[S.projects[n.project].color%PCOL.length];
   return colors.node}
+function computeTargets(){
+  const N=SIM.nodes;const kids=new Map();const add=(p,c)=>{(kids.get(p)||kids.set(p,[]).get(p)).push(c)};
+  for(const id in S.map)if(N.has(id))for(const c of S.map[id].children)if(N.has(c))add(id,c);
+  for(const n of SIM.list)if(n.kind==='ghost'&&n.src&&N.has(n.src))add(n.src,n.id);
+  const w=new Map(),dep=new Map();let maxD=1;
+  const weigh=(id,d,seen)=>{if(seen.has(id))return 0;seen.add(id);dep.set(id,d);maxD=Math.max(maxD,d);const ks=kids.get(id)||[];let t=0;for(const c of ks)t+=weigh(c,d+1,seen);t=Math.max(1,t);w.set(id,t);return t};
+  const seen=new Set();if(!N.has('root'))return;weigh('root',0,seen);
+  const loose=SIM.list.filter(n=>!seen.has(n.id)).map(n=>n.id);           // nodes outside the tree (just in case)
+  const top=(kids.get('root')||[]);const pad=.8;const total=top.reduce((a,c)=>a+w.get(c)+pad,0)+loose.length||1;
+  const R=110*(S.gopt.dist||1);const leaves=w.get('root')||1;const scale=Math.max(1,(leaves*64)/(2*Math.PI*R*maxD));
+  const ring=d=>d*R*scale;
+  const place=(id,a0,a1,d)=>{const n=N.get(id);const a=(a0+a1)/2;n.tx=Math.cos(a)*ring(d);n.ty=Math.sin(a)*ring(d);
+    const ks=kids.get(id)||[];let s0=a0;const tw=ks.reduce((x,c)=>x+w.get(c),0)||1;for(const c of ks){const s1=s0+(a1-a0)*w.get(c)/tw;place(c,s0,s1,d+1);s0=s1}};
+  const rn=N.get('root');rn.tx=0;rn.ty=0;
+  let a=-Math.PI/2;const full=Math.PI*2;
+  for(const c of top){const span=full*(w.get(c)+pad)/total;place(c,a+full*pad/total/2,a+span-full*pad/total/2,1);a+=span}
+  for(const id of loose){const span=full/total;const n=N.get(id);n.tx=Math.cos(a+span/2)*ring(maxD+1);n.ty=Math.sin(a+span/2)*ring(maxD+1);a+=span}
+}
 function refreshGraph(){
   if(!cv)return;const g=buildGraph();const old=SIM.nodes,next=new Map();
   const adj=new Map();for(const e of g.edges){(adj.get(e.a)||adj.set(e.a,new Set()).get(e.a)).add(e.b);(adj.get(e.b)||adj.set(e.b,new Set()).get(e.b)).add(e.a)}
@@ -1475,6 +1493,7 @@ function refreshGraph(){
     let lbl=n.label||'';if(lbl.length>34)lbl=lbl.slice(0,33)+'…';const big=n.id==='root'||isP;s.lw=textW(lbl,`${big?600:500} ${(big?13.5:12.5)*(S.gopt.text||1)}px ${F_BODY}`)+6;
     s.color=n.kind==='ghost'?colors.ghost:nodeColor(n.id);next.set(n.id,s)}
   SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b)}));SIM.adj=adj;
+  if(S.gopt.group){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else for(const n of SIM.list){n.tx=null;n.ty=null}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
   if(sig!==SIM.sig){SIM.sig=sig;if(fresh===SIM.list.length&&fresh){SIM.alpha=1;for(let i=0;i<320;i++)tick();SIM.alpha=.1;if(!GVP.init)graphFit()}else SIM.alpha=Math.max(SIM.alpha,.45)}
   const c=$('#gcount');if(c){const nn=SIM.list.filter(n=>n.kind==='node').length,ne=SIM.edges.length;c.textContent=`${nn} ${plural(nn,'узел','узла','узлов')} · ${ne} ${plural(ne,'связь','связи','связей')}`}
@@ -1484,8 +1503,11 @@ function tick(){
   const L=SIM.list,n=L.length,a=SIM.alpha;if(!n)return;const rep=900*S.gopt.repel,dist=70*S.gopt.dist,cen=.012*(S.gopt.center??1),gap=S.gopt.gap??14,nl=S.gopt.nolabel&&S.gopt.labels;
   for(let i=0;i<n;i++){const p=L[i];for(let j=i+1;j<n;j++){const q=L[j];let dx=p.x-q.x,dy=p.y-q.y,d2=dx*dx+dy*dy;if(d2<1){dx=Math.random()-.5;dy=Math.random()-.5;d2=1}
     if(d2>250000)continue;const f=rep*a/d2,d=Math.sqrt(d2),fx=dx/d*f,fy=dy/d*f;p.vx+=fx;p.vy+=fy;q.vx-=fx;q.vy-=fy}}
-  for(const e of SIM.edges){const s=e.s,t=e.t,dx=t.x-s.x,dy=t.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;const k=(d-(e.kind==='link'?dist*1.3:dist))/d*(e.kind==='link'?.05:.09)*a;t.vx-=dx*k;t.vy-=dy*k;s.vx+=dx*k;s.vy+=dy*k}
-  for(const p of L){p.vx-=p.x*cen*a;p.vy-=p.y*cen*a;if(p.fx!=null){p.x=p.fx;p.y=p.fy;p.vx=p.vy=0;continue}p.vx*=.58;p.vy*=.58;p.x+=p.vx;p.y+=p.vy}
+  const grp=S.gopt.group,gk=.07*(S.gopt.gstr??1)*a;
+  for(const e of SIM.edges){const s=e.s,t=e.t,dx=t.x-s.x,dy=t.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+    if(grp&&e.kind==='tree')continue;                       // in grouped mode tree edges follow the radial layout
+    const k=(d-(e.kind==='link'?dist*1.3:dist))/d*(e.kind==='link'?(grp?.012:.05):.09)*a;t.vx-=dx*k;t.vy-=dy*k;s.vx+=dx*k;s.vy+=dy*k}
+  for(const p of L){if(grp&&p.tx!=null){p.vx+=(p.tx-p.x)*gk;p.vy+=(p.ty-p.y)*gk}else{p.vx-=p.x*cen*a;p.vy-=p.y*cen*a}if(p.fx!=null){p.x=p.fx;p.y=p.fy;p.vx=p.vy=0;continue}p.vx*=.58;p.vy*=.58;p.x+=p.vx;p.y+=p.vy}
   // collision: keep a gap between nodes (and their labels) so nothing overlaps
   for(let i=0;i<n;i++){const p=L[i];const pw=nl?Math.max(p.r,p.lw/2):p.r,ph=nl?p.r+16*(S.gopt.text||1):p.r;
     for(let j=i+1;j<n;j++){const q=L[j];const qw=nl?Math.max(q.r,q.lw/2):q.r,qh=nl?q.r+16*(S.gopt.text||1):q.r;
@@ -1548,11 +1570,14 @@ function mountGraph(){
 }
 function setPanel(){const o=S.gopt;const R=(id,label,min,max,step,val,hint)=>`<label>${label} <output id="${id}V">${val}</output><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}">${hint?`<small>${hint}</small>`:''}</label>`;
   return `<div class="gset" id="gset"><div class="gset-h"><b>Настройки графа</b><button class="ghost" data-g="reset">Сбросить</button></div>
+  <label class="ckl"><input type="checkbox" id="optGroup" ${o.group?'checked':''}> Группировать по проектам</label>
+  <small style="font-size:11px;color:var(--muted);margin-top:-6px">Каждый проект — свой сектор, ветки разных проектов не пересекаются</small>
+  ${o.group?R('optGstr','Сила группировки',0.2,3,0.1,o.gstr??1,'Больше — строгий веер, меньше — свободнее'):''}
   <div class="gset-g">Расстояния</div>
   ${R('optDist','Длина связей',0.4,3,0.1,o.dist,'Насколько далеко связанные узлы друг от друга')}
   ${R('optRepel','Отталкивание',0.2,4,0.1,o.repel,'Как сильно узлы расталкивают соседей')}
   ${R('optGap','Зазор между узлами',0,60,2,o.gap,'Минимальный отступ — узлы не наезжают друг на друга')}
-  ${R('optCenter','Притяжение к центру',0,3,0.1,o.center,'Меньше — граф шире, больше — компактнее')}
+  ${o.group?'':R('optCenter','Притяжение к центру',0,3,0.1,o.center,'Меньше — граф шире, больше — компактнее')}
   <label class="ckl"><input type="checkbox" id="optNoLabel" ${o.nolabel?'checked':''}> Не перекрывать подписи</label>
   <div class="gset-g">Вид</div>
   <label>Размер узлов<select id="optSizeMode"><option value="links" ${o.sizeMode!=='same'?'selected':''}>По числу связей</option><option value="same" ${o.sizeMode==='same'?'selected':''}>Одинаковый</option></select></label>
@@ -1562,8 +1587,10 @@ function setPanel(){const o=S.gopt;const R=(id,label,min,max,step,val,hint)=>`<l
   <label class="ckl"><input type="checkbox" id="optOrph" ${o.orphans?'checked':''}> Узлы без связей</label></div>`}
 function bindSet(){
   const num=(id,k)=>{const el=$('#'+id);if(!el)return;el.addEventListener('input',()=>{S.gopt[k]=+el.value;const o=$('#'+id+'V');if(o)o.textContent=el.value;cacheLocal();
-    if(k==='size'||k==='text')refreshGraph();SIM.alpha=Math.max(SIM.alpha,.6);dirty=true;startLoop()})};
+    if(k==='size'||k==='text')refreshGraph();if(k==='dist'&&S.gopt.group){computeTargets();GVP.auto=true}SIM.alpha=Math.max(SIM.alpha,.6);dirty=true;startLoop()})};
   const ck=(id,k)=>{const el=$('#'+id);if(!el)return;el.addEventListener('change',()=>{S.gopt[k]=el.checked;cacheLocal();refreshGraph();SIM.alpha=Math.max(SIM.alpha,.5);dirty=true;startLoop()})};
+  num('optGstr','gstr');
+  {const el=$('#optGroup');if(el)el.addEventListener('change',()=>{S.gopt.group=el.checked;cacheLocal();refreshGraph();SIM.alpha=.9;GVP.auto=true;startLoop();const gs=$('#gset');if(gs){gs.remove();$('#mapbox').insertAdjacentHTML('beforeend',setPanel());bindSet()}})}
   num('optDist','dist');num('optRepel','repel');num('optGap','gap');num('optCenter','center');num('optSize','size');num('optText','text');
   ck('optNoLabel','nolabel');ck('optLabels','labels');ck('optOrph','orphans');
   const sm=$('#optSizeMode');if(sm)sm.addEventListener('change',()=>{S.gopt.sizeMode=sm.value;cacheLocal();refreshGraph();SIM.alpha=Math.max(SIM.alpha,.5);startLoop();renderLegend()});
