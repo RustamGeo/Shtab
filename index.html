@@ -540,7 +540,10 @@ a.skinbtn{text-decoration:none}
 /* tasks & notes rows in the Projects list, virtual leaves on the tree */
 .nl-i{min-height:34px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);cursor:pointer;font-size:13px}
 .nl-i .nl-name{gap:8px}
-.nl-i .ck{width:16px;height:16px;border-width:1.6px;flex:none;margin:0}
+.nl-i .ck{width:16px;height:16px;border-width:1.6px;flex:none;margin:0;border-radius:4px}
+.nl-tg svg+svg{margin-left:-2px}
+.lgi{display:inline-flex;align-items:center;gap:5px}.lgi svg{width:12px;height:12px}
+.gbtn svg+svg{margin-left:-3px}
 .nl-i .t{color:color-mix(in srgb,var(--ink) 82%,var(--muted))}
 .nl-pr{color:var(--bad);font-weight:700}
 .nl-mi{color:var(--muted);display:inline-flex;flex:none}.nl-mi svg{width:13px;height:13px}
@@ -759,6 +762,8 @@ const I={
   trash:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M6.3 4V2.5h3.4V4M3.9 4l.7 9.5h6.8L12.1 4M6.7 6.8v4.2M9.3 6.8v4.2"/></svg>',
   chev:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>',
   arrow:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
+  memo:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><circle cx="2.6" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="2.6" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="2.6" cy="12" r="1" fill="currentColor" stroke="none"/></svg>',
+  task:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8.2l2.1 2.1L11 6"/></svg>',
   check:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>'
 };
 
@@ -1126,7 +1131,7 @@ function nlItems(pid,pad,f,today){
       <span class="nl-st"><button class="stp ${t.status}" data-cyc="${t.id}" title="Сменить статус">${st}</button></span>
       <span class="nl-x"><button class="icodel" data-deltask="${t.id}" aria-label="Удалить задачу «${esc(t.title)}»" title="Удалить">${I.trash}</button></span></div>`}).join('');
   if(f==='all'||f==='active'){
-    h+=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).map(mm=>`<div class="nl-row nl-i" data-memo="${mm.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<span class="nl-mi">${I.note}</span><span class="t">${esc(mm.title||'Без названия')}</span><span class="nl-prev">${esc(memoPreview(mm))}</span></span>
+    h+=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).map(mm=>`<div class="nl-row nl-i" data-memo="${mm.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<span class="nl-mi">${I.memo}</span><span class="t">${esc(mm.title||'Без названия')}</span><span class="nl-prev">${esc(memoPreview(mm))}</span></span>
       <span class="nl-prog"></span><span class="nl-open"></span><span class="nl-due num">${mm.updated?fmtDate(ymd(new Date(mm.updated))):''}</span><span class="nl-st"><span class="nst plain">заметка</span></span>
       <span class="nl-x"><button class="icodel" data-delmemo="${mm.id}" aria-label="Удалить заметку «${esc(mm.title)}»" title="Удалить">${I.trash}</button></span></div>`).join('');
     const dn=p.tasks.filter(t=>t.status==='done').length;
@@ -1136,7 +1141,7 @@ function nlItems(pid,pad,f,today){
 function nlSubs(pid,depth,f,today){
   return childProjects(pid).filter(([c])=>treeMatch(c,f,today)).map(([c,cp])=>{const st=pStatus(cp,today);
     return `<div class="nl-row nl-s" data-screen="${c}" role="button" tabindex="0">
-      <span class="nl-name" style="padding-left:${16+depth*22}px"><span class="nl-tie" aria-hidden="true"></span><span class="dot" style="background:${projColor(c)}"></span><span class="t">${esc(cp.name||'Без названия')}</span>${(cp.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.note}${cp.memos.length}</span>`:''}</span>
+      <span class="nl-name" style="padding-left:${16+depth*22}px"><span class="nl-tie" aria-hidden="true"></span><span class="dot" style="background:${projColor(c)}"></span><span class="t">${esc(cp.name||'Без названия')}</span>${(cp.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${cp.memos.length}</span>`:''}</span>
       ${nlCells(cp,st,today,true)}
       <span class="nl-x"><button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlItems(c,16+depth*22+22,f,today)+nlSubs(c,depth+1,f,today)}).join('')}
 function renderProjects(){
@@ -1146,7 +1151,7 @@ function renderProjects(){
     const st=pStatus(p,today);const nsub=childProjects(pid).length;const collapsed=S.pcol.includes(pid)&&f==='all';
     return `<div class="nl-group">
       <div class="nl-row nl-g" data-screen="${pid}" role="button" tabindex="0">
-        <span class="nl-name"><button class="nl-chev" data-pcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><span class="sq" style="background:${projColor(pid)}"></span><span class="t">${esc(p.name||'Без названия')}</span>${nsub?`<span class="nl-meta num">${nsub} подпр.</span>`:''}${(p.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.note}${p.memos.length}</span>`:''}</span>
+        <span class="nl-name"><button class="nl-chev" data-pcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><span class="sq" style="background:${projColor(pid)}"></span><span class="t">${esc(p.name||'Без названия')}</span>${nsub?`<span class="nl-meta num">${nsub} подпр.</span>`:''}${(p.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${p.memos.length}</span>`:''}</span>
         ${nlCells(p,st,today,false)}
         <span class="nl-x"><button class="icodel" data-delsub="${pid}" aria-label="Удалить проект «${esc(p.name)}»" title="Удалить">${I.trash}</button></span>
       </div>${nlAsk(pid,nsub)}
@@ -1157,7 +1162,7 @@ function renderProjects(){
       <h1 class="nl-h1">Проекты</h1>
       <div class="nl-seg" role="group" aria-label="Фильтр">${NF.map(([k,l])=>`<button data-pf="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
       <span class="nl-sum num">${list.length} ${plural(list.length,'проект','проекта','проектов')} · ${open} открыто${late?` · <span class="late">${late} просрочено</span>`:''}</span>
-      <button class="nl-tg" data-act="pitems" aria-pressed="${S.pitems!==false}">${I.list} Задачи и заметки</button>
+      <button class="nl-tg" data-act="pitems" aria-pressed="${S.pitems!==false}">${I.task}${I.memo} Задачи и заметки</button>
       ${topProjects().length?`<button class="ghost" data-act="${allClosed?'expandall':'collapseall'}">${allClosed?'Развернуть все':'Свернуть все'}</button>`:''}
       <button class="btn" data-act="newproj">${I.plus} Новый проект</button>
     </section>
@@ -1183,7 +1188,7 @@ function renderProject(){
   </section>
   <div class="pgrid">
     <section class="pcol-main" aria-label="Задачи">
-      <div class="colh"><h3>${I.list} Задачи <span class="num" id="tcount"></span></h3></div>
+      <div class="colh"><h3>${I.task} Задачи <span class="num" id="tcount"></span></h3></div>
       <form class="add-task" id="addForm"><input id="newTask" placeholder="Новая задача — Enter, чтобы добавить" autocomplete="off" maxlength="200"><button class="btn" type="submit">Добавить</button></form>
       <div id="tl"></div>
     </section>
@@ -1245,8 +1250,8 @@ function rerenderProj(){if(S.screen==='projects')renderProjects();else if(S.scre
 function memoPreview(m){const l=(m.body||'').split('\n').map(x=>x.replace(/^#+\s*|^\s*[-*]\s+(\[[ xX]\]\s*)?/g,'').replace(/\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g,(a,b,c)=>c||b).trim()).find(Boolean);return l||''}
 function renderMemos(){
   const box=$('#memosec');const pid=S.screen,p=S.projects[pid];if(!box||!p)return;const ms=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0));
-  box.innerHTML=`<div class="colh"><h3>${I.note} Заметки <span class="num">${ms.length}</span></h3></div>
-    <div class="stable">${ms.map(m=>`<div class="mr" data-memo="${m.id}" role="button" tabindex="0"><span class="mr-ic">${I.note}</span>
+  box.innerHTML=`<div class="colh"><h3>${I.memo} Заметки <span class="num">${ms.length}</span></h3></div>
+    <div class="stable">${ms.map(m=>`<div class="mr" data-memo="${m.id}" role="button" tabindex="0"><span class="mr-ic">${I.memo}</span>
       <span class="sr-main"><b>${esc(m.title||'Без названия')}</b><span class="sr-meta">${esc(memoPreview(m))||'Пустая заметка'}</span></span>
       <span class="mr-d">${m.updated?fmtDate(ymd(new Date(m.updated))):''}</span>
       <button class="icodel" data-delmemo="${m.id}" aria-label="Удалить заметку «${esc(m.title)}»" title="Удалить заметку">${I.trash}</button></div>`).join('')||'<div class="tempty sm">Заметок пока нет. Здесь можно хранить мысли, протоколы встреч, ссылки — всё, что не задача.</div>'}</div>
@@ -1260,7 +1265,7 @@ function renderMemoSheet(){
   const L=$('#layer');L.querySelector('.scrim')?.remove();const f=findMemo(S.openMemo);if(!f)return;const {m,pid}=f;const p=S.projects[pid];
   const el=document.createElement('div');el.className='scrim';
   el.innerHTML=`<div class="sheet memo" role="dialog" aria-modal="true" aria-label="Заметка">
-    <div class="hd"><b>${I.note} Заметка · ${esc(p.name)}</b><button class="icodel x" data-act="delmemo-sheet" aria-label="Удалить заметку" title="Удалить заметку">${I.trash}</button><button class="ghost" data-act="closememo" aria-label="Закрыть">${I.x}</button></div>
+    <div class="hd"><b>${I.memo} Заметка · ${esc(p.name)}</b><button class="icodel x" data-act="delmemo-sheet" aria-label="Удалить заметку" title="Удалить заметку">${I.trash}</button><button class="ghost" data-act="closememo" aria-label="Закрыть">${I.x}</button></div>
     <input class="mtitle" id="memoTitle" value="${esc(m.title)}" aria-label="Название заметки" maxlength="120" placeholder="Название">
     <div class="nmode" style="margin:0"><button data-mm="view" aria-pressed="${S.memoMode==='view'}">Просмотр</button><button data-mm="edit" aria-pressed="${S.memoMode==='edit'}">Редактировать</button></div>
     ${S.memoMode==='edit'?`<textarea id="memoBody" class="mbody" placeholder="Текст заметки. # заголовок, - список, - [ ] чекбокс, **жирный**, #тег, [[узел карты]]">${esc(m.body)}</textarea>`:`<div class="md mview">${(m.body||'').trim()?mdRender(m.body):'<p class="empty-note">Заметка пустая. Нажмите «Редактировать», чтобы написать текст.</p>'}</div>`}
@@ -1414,7 +1419,7 @@ function layoutTree(){
 function branchColor(bid){if(!bid)return'var(--ink)';const n=S.map[bid];if(n&&n.project&&S.projects[n.project])return projColor(n.project);const i=S.map.root.children.indexOf(bid);return `var(${PCOL[(i<0?0:i)%PCOL.length]})`}
 function mountTree(){
   $('#mapbox').innerHTML=`<svg id="tsvg" aria-label="Карта проектов, дерево"><g id="tg"></g></svg>
-    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>○ задача</span><span style="color:var(--warn)">◐ в работе</span><span style="color:var(--ok)">● готово</span><span>⊕ ветка свёрнута, число — сколько внутри</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.list} Задачи и заметки</button></div>
+    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>☐ задача</span><span style="color:var(--warn)">◧ в работе</span><span style="color:var(--ok)">☑ готово</span><span style="color:var(--bad)">☐ просрочено</span><span>☰ заметка</span><span>⊕ ветка свёрнута</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button></div>
     <div class="mtools"><button class="gbtn ico" data-z="in" aria-label="Приблизить">${I.plus}</button><button class="gbtn ico" data-z="out" aria-label="Отдалить">${I.minus}</button><button class="gbtn ico" data-z="fit" aria-label="Вписать карту">${I.fit}</button></div>
     <div class="mbar" id="mbar"></div><div id="npwrap"></div>`;
   drawTree();renderMbar();renderPanel();
@@ -1431,10 +1436,11 @@ function drawTree(){
     const isP=n.project&&S.projects[n.project];
     const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
     let mark='';const cx=a.x+15,cy=a.cy;
-    if(t){mark=t.status==='done'?`<circle cx="${cx}" cy="${cy}" r="7" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
-       :t.status==='doing'?`<circle cx="${cx}" cy="${cy}" r="6.5" fill="none" stroke="var(--warn)" stroke-width="1.8"/><path d="M${cx},${cy-6.5} A6.5,6.5 0 0 1 ${cx},${cy+6.5} Z" fill="var(--warn)"/>`
-       :`<circle cx="${cx}" cy="${cy}" r="6.5" fill="none" stroke="${t.due&&t.due<todayStr()?'var(--bad)':'var(--muted)'}" stroke-width="1.8"/>`}
-    else if(n.memoId){mark=`<path d="M${cx-5},${cy-7}h7l3,3v11h-10z M${cx+2},${cy-7}v3h3 M${cx-2.5},${cy}h5 M${cx-2.5},${cy+3}h5" fill="none" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`}
+    if(t){const late=t.status!=='done'&&t.due&&t.due<todayStr();const sc=t.status==='done'?'var(--ok)':late?'var(--bad)':t.status==='doing'?'var(--warn)':'var(--muted)';
+      mark=t.status==='done'?`<rect x="${cx-6.5}" y="${cy-6.5}" width="13" height="13" rx="3.5" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+       :t.status==='doing'?`<rect x="${cx-6}" y="${cy-6}" width="12" height="12" rx="3.2" fill="none" stroke="${sc}" stroke-width="1.7"/><rect x="${cx-3}" y="${cy-3}" width="6" height="6" rx="1.4" fill="${sc}"/>`
+       :`<rect x="${cx-6}" y="${cy-6}" width="12" height="12" rx="3.2" fill="none" stroke="${sc}" stroke-width="1.7"/>`}
+    else if(n.memoId){mark=`<g stroke="${col}" stroke-width="1.6" stroke-linecap="round"><path d="M${cx-2},${cy-4}h8M${cx-2},${cy}h8M${cx-2},${cy+4}h8"/></g><g fill="${col}"><circle cx="${cx-5.5}" cy="${cy-4}" r="1.1"/><circle cx="${cx-5.5}" cy="${cy}" r="1.1"/><circle cx="${cx-5.5}" cy="${cy+4}" r="1.1"/></g>`}
     const tx=root?a.x+a.w/2:((t||n.memoId)?a.x+28:a.x+13);
     html+=`<g class="${cls}" data-node="${id}">${id===S.sel?`<rect class="ring" x="${a.x-5}" y="${a.y-5}" width="${a.w+10}" height="${a.h+10}" rx="${root?16:12}"/>`:''}<rect class="box" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="${root?12:9}" stroke="${root?'var(--ink)':col}"/>${mark}<text x="${tx}" y="${a.cy}" ${root?'text-anchor="middle"':''} ${t&&t.status==='done'?'fill-opacity=".55"':''}>${esc(a.label)}${a.st?`<tspan class="st">${esc(a.st)}</tspan>`:''}</text><title>${esc(n.text)}${virt?(n.memoId?' — заметка':' — задача'):''}</title></g>`;
     if(!virt&&treeKids(id).length&&!root){const tcx=a.dir>0?a.x+a.w+9:a.x-9;
@@ -1554,8 +1560,8 @@ function refreshGraph(){
      if(s.id==='root'){s.color=colors.ink;s.ring=null;s.shape=null;continue}
      s.color=branchHex(branchOfNode(s.id,par));
      const t=s.kind==='task'?(S.projects[s.taskPid]||{tasks:[]}).tasks.find(x=>x.id===s.taskId):(S.map[s.id]?taskOf(S.map[s.id]):null);
-     s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'sq':null;
-     if(s.kind==='task'||s.kind==='memo')s.r=4.6*(S.gopt.size||1)}}
+     s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'memo':(s.kind==='task'||(S.map[s.id]&&t))?'task':null;
+     if(s.kind==='task'||s.kind==='memo')s.r=6*(S.gopt.size||1)}}
   SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'?next.get(e.b).color:null}));SIM.adj=adj;
   if(S.gopt.group){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else for(const n of SIM.list){n.tx=null;n.ty=null}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
@@ -1597,9 +1603,13 @@ function draw(){
   ctx.setLineDash([]);
   for(const n of SIM.list){ctx.globalAlpha=dim(n.id)?.16:1;const col=hover&&hover.id===n.id?colors.accent:n.color;
     if(n.kind==='ghost'){ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.fillStyle=colors.bg;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill();ctx.stroke()}
-    else if(n.shape==='sq'){ctx.fillStyle=col;const r=n.r*.95;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(n.x-r,n.y-r,r*2,r*2,r*.35);else ctx.rect(n.x-r,n.y-r,r*2,r*2);ctx.fill()}
-    else{if(n.done)ctx.globalAlpha*=.55;ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill()}
-    if(n.ring){ctx.strokeStyle=n.ring;ctx.lineWidth=Math.max(1.6,n.r*.45);ctx.beginPath();ctx.arc(n.x,n.y,n.r+ctx.lineWidth*.6,0,Math.PI*2);ctx.stroke()}
+    else if(n.shape==='task'){const r=n.r*.92,rr=(x,y,w)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-w,y-w,w*2,w*2,w*.38);else ctx.rect(x-w,y-w,w*2,w*2)};
+      if(n.done)ctx.globalAlpha*=.6;ctx.fillStyle=col;rr(n.x,n.y,r);ctx.fill();
+      if(n.ring){ctx.strokeStyle=n.ring;ctx.lineWidth=Math.max(1.5,r*.38);rr(n.x,n.y,r+ctx.lineWidth*.6);ctx.stroke()}
+      ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(1,r*.28);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(n.x-r*.5,n.y+r*.02);ctx.lineTo(n.x-r*.12,n.y+r*.42);ctx.lineTo(n.x+r*.55,n.y-r*.4);ctx.stroke()}
+    else if(n.shape==='memo'){const r=n.r;ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(.9,r*.2);ctx.lineCap='round';ctx.beginPath();for(const dy of[-.38,0,.38]){ctx.moveTo(n.x-r*.45,n.y+dy*r);ctx.lineTo(n.x+r*.5,n.y+dy*r)}ctx.stroke()}
+    else{ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill()}
     if(n.id===sel){ctx.globalAlpha=1;ctx.strokeStyle=colors.accent;ctx.lineWidth=2/v.k;ctx.beginPath();ctx.arc(n.x,n.y,n.r+4/v.k,0,Math.PI*2);ctx.stroke()}}
   // labels live in graph space (they zoom with the graph, as in Obsidian), so the no-overlap spacing holds at any zoom
   ctx.textAlign='center';ctx.textBaseline='top';const ts=S.gopt.text||1;
@@ -1624,7 +1634,7 @@ function mountGraph(){
   $('#mapbox').innerHTML=`<canvas id="gcv" aria-label="Карта проектов, граф"></canvas>
     <div class="mtop">${searchBox()}
       <button class="gbtn pri" data-g="new">${I.plus} Узел</button>
-      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.list} Задачи и заметки</button>
+      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>
       <button class="gbtn" data-g="set" aria-pressed="${S.showSet}">${I.gear} Настройки</button>
       <button class="gbtn ico" data-g="fit" aria-label="Показать весь граф">${I.fit}</button>
     </div>${S.showSet?setPanel():''}
@@ -1663,7 +1673,7 @@ function bindSet(){
   const sm=$('#optSizeMode');if(sm)sm.addEventListener('change',()=>{S.gopt.sizeMode=sm.value;cacheLocal();refreshGraph();SIM.alpha=Math.max(SIM.alpha,.5);startLoop();renderLegend()});
 }
 function renderLegend(){const el=$('#glegend');if(!el)return;
-  el.innerHTML=`<span><i class="lg" style="background:var(--b1)"></i><i class="lg" style="background:var(--b2);margin-left:-3px"></i>цвет — проект и вся его ветка</span><span><i class="lg" style="background:transparent;box-shadow:0 0 0 2px var(--warn)"></i>кольцо — статус задачи</span><span><i class="lg" style="border-radius:2px;background:var(--muted)"></i>квадрат — заметка</span><span><i class="lg hollow"></i>ссылка на несуществующий узел</span><span class="lgn">кольцо: серое — сделать, жёлтое — в работе, зелёное — готово, красное — просрочено · пунктир — [[ссылка]] из заметки</span>`}
+  el.innerHTML=`<span><i class="lg" style="background:var(--b1)"></i><i class="lg" style="background:var(--b2);margin-left:-3px"></i>цвет — проект и вся его ветка</span><span class="lgi">${I.task}задача — квадрат с галочкой, рамка — статус</span><span class="lgi">${I.memo}заметка — кружок со списком</span><span><i class="lg hollow"></i>ссылка на несуществующий узел</span><span class="lgn">рамка задачи: серая — сделать, жёлтая — в работе, зелёная — готово, красная — просрочено · пунктир — [[ссылка]] из заметки</span>`}
 function bindGraph(){
   const pts=new Map();let st=null,moved=false,pinch=null,drag=null;
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const p=gpt(e);pts.set(e.pointerId,p);moved=false;
