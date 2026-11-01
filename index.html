@@ -84,6 +84,17 @@
 :root[data-skin="night"] .btn{font-size:13px;padding:8px 13px}
 :root[data-skin="night"] .tr.th{background:#14161B}
 :root[data-skin="night"] .sheet{background:#15171C;border:1px solid #22252C}
+:root[data-skin="day"],.skinprev[data-skin="day"],:root[data-skin="day"][data-theme],:root[data-theme] .skinprev[data-skin="day"]{--bg:#FFFFFF;--surface:#FFFFFF;--sunk:#F4F5F8;--line:#E6E8EE;--ink:#1B1D22;--muted:#6B7180;--accent:#6A5AE8;--accent-ink:#FFFFFF;--accent-soft:#EEEBFD;--ok:#2E9E68;--warn:#C9811A;--bad:#D9443C;--b1:#6A5AE8;--b2:#D9891C;--b3:#2E9E68;--b4:#3B82D6;--b5:#C9508A;--b6:#D9443C;--g-bg:#FAFAFC;--g-node:#8A90A0;--g-edge:#D5D9E2;--g-ghost:#B4B9C4;--f-display:"Manrope",system-ui,sans-serif;--f-body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--rc:8px;--rp:10px;--rs:6px;--dw:700;--memo:#2F8FDA;color-scheme:light}
+/* «День»: светлая версия «Ночи» */
+:root[data-skin="day"] body{font-size:13.5px}
+:root[data-skin="day"] .side{background:#F7F8FA;border-right-color:#E6E8EE}
+:root[data-skin="day"] .sn-item[aria-current="page"],:root[data-skin="day"] .sn-proj[aria-current="page"]{background:#ECEDF2;color:var(--ink)}
+:root[data-skin="day"] .sn-item[aria-current="page"] svg{color:var(--accent)}
+:root[data-skin="day"] .brand i{background:var(--accent);color:#fff;border-radius:6px}
+:root[data-skin="day"] .pname{font-size:clamp(20px,3vw,26px);letter-spacing:-.01em}
+:root[data-skin="day"] .btn{font-size:13px;padding:8px 13px}
+:root[data-skin="day"] .tr.th{background:#F7F8FA}
+:root[data-skin="day"] .sheet{background:#FFFFFF;border:1px solid #E6E8EE;box-shadow:0 20px 50px rgba(20,22,30,.14)}
 /* «Списки»: grouped lists, round checkboxes, big bold titles */
 :root[data-skin="lists"] body{font-size:16px;letter-spacing:-.01em}
 :root[data-skin="lists"] .num{font-variant-numeric:tabular-nums}
@@ -1941,12 +1952,13 @@ const SKINS=[
   {id:'graphite',name:'Графит',desc:'Тёмная приборная панель: янтарный акцент, узкие заглавные заголовки.',fonts:'Oswald:wght@400;500;600&family=Manrope:wght@400;500;600;700'},
   {id:'air',name:'Воздух',desc:'Лёгкий и просторный: белые карточки с тенью, индиго, крупные скругления.',fonts:'Onest:wght@400;500;600;700'},
   {id:'night',name:'Ночь',desc:'Тёмный и плотный, в духе Linear: фиолетовый акцент, кольца прогресса, статусы цветными метками.',fonts:'Manrope:wght@400;500;600;700'},
+  {id:'day',name:'День',desc:'Белый и чистый — светлая версия «Ночи»: те же плотные списки, кольца прогресса и фиолетовый акцент.',fonts:'Manrope:wght@400;500;600;700'},
   {id:'lists',name:'Списки',desc:'По мотивам «Напоминаний»: системный шрифт, белые группы, круглые чекбоксы, «!!!» для важных задач.',fonts:''},
   {id:'forest',name:'Лес',desc:'Спокойный природный: зелёный, книжные заголовки с засечками.',fonts:'Lora:wght@500;600&family=Golos+Text:wght@400;500;600'}];
 function loadFonts(list){for(const sk of list){if(!sk.fonts||document.getElementById('font-'+sk.id))continue;const l=document.createElement('link');l.rel='stylesheet';l.id='font-'+sk.id;
   l.href='https://fonts.googleapis.com/css2?family='+sk.fonts+'&display=swap';l.onload=()=>{if(document.fonts)document.fonts.ready.then(()=>{updFonts();refreshSkinDeps()})};document.head.appendChild(l)}}
 function refreshSkinDeps(){updFonts();readColors();if(S.screen==='map'){if(S.mapView==='tree')drawTree();else refreshGraph()}}
-function applySkin(id){const sk=SKINS.find(x=>x.id===id)||SKINS[0];if(!PANE&&sk.id!==S.skin)setTimeout(()=>sendPane({skin:sk.id}),0);S.skin=sk.id;document.documentElement.dataset.skin=sk.id;loadFonts([sk]);cacheLocal();refreshSkinDeps();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
+function applySkin(id){const sk=SKINS.find(x=>x.id===id)||SKINS[0];if(!PANE&&sk.id!==S.skin)setTimeout(()=>sendPane({skin:sk.id}),0);S.skin=sk.id;document.documentElement.dataset.skin=sk.id;loadFonts([sk]);cacheLocal();refreshSkinDeps();try{const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||m.content}catch(e){}if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
 function skinPrev(id){return `<div class="skinprev" data-skin="${id}" aria-hidden="true">
   <div class="sp-top"><span class="sp-brand">Ш</span><span class="sp-title">Запуск продукта</span><span class="sp-num">2/5</span></div>
   <div class="sp-bar"><b></b></div>
@@ -1961,7 +1973,7 @@ function openSkins(){
   const el=document.createElement('div');el.className='scrim';
   el.innerHTML=`<div class="sheet skins" role="dialog" aria-modal="true" aria-label="Оформление">
     <div class="hd"><b>Оформление</b><button class="ghost x" data-act="closeskins" aria-label="Закрыть">${I.x}</button></div>
-    <div class="hint" style="font-size:13px">Нажмите на вариант — он сразу применится ко всему приложению. Светлая или тёмная версия следует теме устройства; «Обсидиан» и «Графит» всегда тёмные.</div>
+    <div class="hint" style="font-size:13px">Нажмите на вариант — он сразу применится ко всему приложению. «День» всегда светлый, «Ночь», «Обсидиан» и «Графит» — всегда тёмные; остальные следуют теме устройства.</div>
     <div class="skgrid">${SKINS.map(sk=>`<button class="skcard" data-skin-pick="${sk.id}" aria-pressed="${S.skin===sk.id}">${skinPrev(sk.id)}<span class="skinfo"><b>${sk.name}${S.skin===sk.id?'<span class="skon">выбран</span>':''}</b><span>${sk.desc}</span></span></button>`).join('')}</div></div>`;
   L.appendChild(el);el.addEventListener('click',e=>{if(e.target===el)el.remove()});
 }
