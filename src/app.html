@@ -645,7 +645,19 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .nst.late{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
 .nst.doing{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
 .nst.plain.done,.nst.plain.late,.nst.plain.doing{border-color:transparent}
-.nl-x{justify-self:end}
+.nl-x{justify-self:end;display:flex;gap:2px}
+.nl-row{grid-template-columns:minmax(0,1fr) 116px 70px 84px 104px 58px}
+.nl-x .arb{opacity:.0}.nl-row:hover .nl-x .arb,.nl-x .arb:focus-visible,.nl-x .arb[aria-pressed="true"]{opacity:.75}
+@media (hover:none){.nl-x .arb{opacity:.75}}
+.arch{filter:grayscale(1);opacity:.5}
+.nl-group.arch .arch{filter:none;opacity:1}
+.nl-group.arch{opacity:.5}
+.nl-group.arch .nl-g .t{font-weight:500}
+.nst.arch{color:var(--muted);border-color:var(--line)}
+.node.arch{opacity:.38;filter:grayscale(1)}.edge.arch{opacity:.3;filter:grayscale(1)}
+.sn-pw.arch{opacity:.5}
+.arch-note{display:flex;align-items:center;gap:10px;grid-column:1/-1;padding:8px 12px;border:1px dashed var(--line);border-radius:var(--rs);color:var(--muted);font-size:13px}
+.arch-note svg{flex:none}.arch-note .ghost{margin-left:auto}
 .nl-x .icodel{width:26px;height:26px}
 .nl-add{display:flex;align-items:center;gap:9px;height:36px;padding:0 14px 0 30px;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
 .nl-add input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-size:13px;padding:6px 0}
@@ -658,6 +670,7 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .nl + .backup{margin-top:18px}
 @media (max-width:760px){
   .nl-row{grid-template-columns:minmax(0,1fr) auto 30px;gap:0 10px;padding-left:10px}
+  .nl-x .arb{display:none}
   .nl-row.dn-row{grid-template-columns:minmax(0,1fr) auto 30px}.dn-p{display:none}.dn-n{grid-column:auto}.dn-q{width:100%;order:3}
   .nl-open,.nl-due,.nl-st,.nl-meta,.nl-tag,.nl-hd span:nth-child(3),.nl-hd span:nth-child(4),.nl-hd span:nth-child(5){display:none}
   .nl-g .nl-name .t{font-size:14.5px}
@@ -750,6 +763,7 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .panes.split #pane0{container-type:inline-size}
 @container (max-width:700px){
   .nl-row{grid-template-columns:minmax(0,1fr) auto 30px;gap:0 10px;padding-left:10px}
+  .nl-x .arb{display:none}
   .nl-row.dn-row{grid-template-columns:minmax(0,1fr) auto 30px}.dn-p{display:none}.dn-n{grid-column:auto}.dn-q{width:100%;order:3}
   .nl-open,.nl-due,.nl-st,.nl-meta,.nl-tag,.nl-hd span:nth-child(3),.nl-hd span:nth-child(4),.nl-hd span:nth-child(5),.nl-prev,.nl-i .nl-st{display:none}
   .nl-prog svg{display:none}.nl-sum{margin-left:0;flex-basis:100%;order:3}
@@ -814,13 +828,15 @@ const I={
   task:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8.2l2.1 2.1L11 6"/></svg>',
   splitv:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M8 2.5v11"/></svg>',
   splith:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M1.8 8h12.4"/></svg>',
+  arch:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="2.5" width="12.4" height="3.3" rx="1"/><path d="M3 5.8v6.7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.8M6.3 8.6h3.4"/></svg>',
+  unarch:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="2.5" width="12.4" height="3.3" rx="1"/><path d="M3 5.8v6.7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.8M8 12.2V8M6.2 9.6 8 7.8l1.8 1.8"/></svg>',
   donec:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.2"/><path d="M5.3 8.2l1.9 1.9 3.6-4"/></svg>',
   check:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>'
 };
 
 /* ---------- state ---------- */
 const S={projects:{},map:null,screen:'map',mapView:'tree',sel:'root',panel:false,noteMode:'view',openTask:null,confirmDel:false,
-  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],mapItems:true,pitems:true,tabs:null,tab:null,split:null,tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
+  gopt:{labels:true,orphans:true,repel:1,dist:1,center:1,gap:14,nolabel:true,size:1,sizeMode:'links',text:1,group:true,gstr:1},search:'',showSet:false,pcol:[],ptasks:[],mapItems:true,pitems:true,showArch:true,tabs:null,tab:null,split:null,tsort:{k:'status',dir:1},showDone:false,confirmSub:null};
 let col=null,firstSnap=true,dl=null;
 const pend={};
 const LSK='shtab.v1';
@@ -828,7 +844,7 @@ const UIK=LSK+'.ui'+(PANE?'.pane'+PANE:'');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
-function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems}))}
+function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch}))}
 function setSync(s){const el=$('#sync');el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
   el.textContent=s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Облако недоступно в этом окне. Данные лежат в браузере — сделайте резервную копию на вкладке «Проекты».':''}
@@ -910,6 +926,16 @@ function topProjects(){return sortedProjects().filter(([id])=>!parentProject(id)
 function projChain(pid){const out=[];let c=parentProject(pid),g=0;while(c&&g++<50){out.unshift(c);c=parentProject(c)}return out}
 function treeStats(pid){let t=0,d=0;const walk=id=>{const p=S.projects[id];t+=p.tasks.length;d+=p.tasks.filter(x=>x.status==='done').length;for(const [c] of childProjects(id))walk(c)};walk(pid);return{t,d,pct:t?Math.round(d/t*100):0}}
 function addSubproject(pid,name){const k=nodeOfProject(pid);const np=newProject(name||'Новый подпроект');addChild(k||'root',S.projects[np].name,{project:np});persist(np);persist('map');return np}
+/* архив: проект в архиве вместе со всеми подпроектами */
+function isArch(pid){const p=S.projects[pid];if(!p)return false;if(p.archived)return true;return projChain(pid).some(c=>S.projects[c]&&S.projects[c].archived)}
+const showArch=()=>S.showArch!==false;
+const visProj=pid=>showArch()||!isArch(pid);
+function archNodes(){const out=new Set();const walk=(id,a,g)=>{const n=S.map[id];if(!n||g>300)return;const f=a||!!(n.project&&S.projects[n.project]&&S.projects[n.project].archived);if(f)out.add(id);for(const c of n.children)walk(c,f,g+1)};walk('root',false,0);return out}
+let AR=new Set();
+function setArch(pid,v){const p=S.projects[pid];if(!p)return;if(v)p.archived=true;else delete p.archived;persist(pid);toast(v?`«${p.name||'Проект'}» — в архиве`:`«${p.name||'Проект'}» вернулся из архива`);render()}
+function archBtn(pid,big){const own=!!S.projects[pid].archived,inh=!own&&isArch(pid);
+  return inh?'':`<button class="icodel${big?' big':''} arb" data-arch="${pid}" aria-pressed="${own}" aria-label="${own?'Вернуть из архива':'В архив'} «${esc(S.projects[pid].name)}»" title="${own?'Вернуть из архива':'В архив'}">${own?I.unarch:I.arch}</button>`}
+function archToggle(cls){const on=showArch();return `<button class="${cls}" data-act="showarch" aria-pressed="${on}" title="${on?'Скрыть архивные проекты':'Показать архивные проекты'}">${I.arch} Архив${on?'':': скрыт'}</button>`}
 function topProjOf(pid){return projChain(pid)[0]||pid}
 function colorOf(p){const c=p?p.color:0;return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)?c:`var(${PCOL[(+c||0)%PCOL.length]})`}
 function projColor(pid){return colorOf(S.projects[topProjOf(pid)])}
@@ -935,11 +961,11 @@ let VN={},VK={};
 function buildVirtual(){VN={};VK={};if(S.mapItems===false)return;
   for(const id in S.map){const n=S.map[id];const p=n.project&&S.projects[n.project];if(!p)continue;const arr=[];
     const ts=p.tasks.filter(t=>!(t.nodeId&&S.map[t.nodeId])).sort((a,b)=>(stRank[a.status]-stRank[b.status])||((a.due||'9')<(b.due||'9')?-1:(a.due||'9')>(b.due||'9')?1:0));
-    for(const t of ts){const k='vt:'+t.id;VN[k]={text:t.title||'Без названия',children:[],taskId:t.id,taskPid:n.project,kind:'task'};arr.push(k)}
-    for(const mm of (p.memos||[])){const k='vm:'+mm.id;VN[k]={text:mm.title||'Без названия',children:[],memoId:mm.id,kind:'memo'};arr.push(k)}
+    for(const t of ts){const k='vt:'+t.id;VN[k]={text:t.title||'Без названия',children:[],taskId:t.id,taskPid:n.project,kind:'task',par:id};arr.push(k)}
+    for(const mm of (p.memos||[])){const k='vm:'+mm.id;VN[k]={text:mm.title||'Без названия',children:[],memoId:mm.id,kind:'memo',par:id};arr.push(k)}
     if(arr.length)VK[id]=arr}}
 const nodeObj=id=>S.map[id]||VN[id];
-function treeKids(id){const n=S.map[id];if(!n)return[];return n.children.filter(c=>S.map[c]).concat(VK[id]||[])}
+function treeKids(id){const n=S.map[id];if(!n)return[];return n.children.filter(c=>S.map[c]&&(showArch()||!AR.has(c))).concat(VK[id]||[])}
 function openVirtual(id){const v=VN[id];if(!v)return false;if(v.taskId)openTask(v.taskId);else if(v.memoId)openMemo(v.memoId);return true}
 function stats(p){const t=p.tasks.length,d=p.tasks.filter(x=>x.status==='done').length;return{t,d,pct:t?Math.round(d/t*100):0}}
 function newProject(name){const id='p'+uid();S.projects[id]={name,color:sortedProjects().length%PCOL.length,created:Date.now(),tasks:[]};return id}
@@ -1076,12 +1102,12 @@ window.addEventListener('storage',e=>{
   try{if(e.key===LSK)S.projects=JSON.parse(e.newValue||'{}')||{};else{const m=JSON.parse(e.newValue||'null');if(m&&m.root)S.map=m}}catch(x){return}
   if(!S.map[S.sel])S.sel='root';if(S.screen!=='map'&&S.screen!=='projects'&&S.screen!=='done'&&!S.projects[S.screen])S.screen='projects';renderSafe()});
 function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
-  const today=todayStr();let open=0;for(const pid in S.projects)for(const t of S.projects[pid].tasks)if(t.status!=='done')open++;
+  const today=todayStr();let open=0;for(const pid in S.projects)if(!isArch(pid))for(const t of S.projects[pid].tasks)if(t.status!=='done')open++;
   const isMap=S.screen==='map';const curTop=S.projects[S.screen]?S.screen:null;
   const item=(attrs,ic,label,n,cur)=>`<button class="sn-item" ${attrs} aria-current="${cur?'page':'false'}">${ic}<span>${label}</span>${n!=null?`<em class="num">${n}</em>`:''}</button>`;
-  const tree=(pid,d)=>{const p=S.projects[pid];const st=stats(p);const kids=childProjects(pid);
+  const tree=(pid,d)=>{const p=S.projects[pid];const st=stats(p);const kids=childProjects(pid).filter(([c])=>visProj(c));const ar=isArch(pid);
     const dot=d===0?`<button class="sn-dot" data-colorfor="${pid}" style="background:${projColor(pid)}" aria-label="Выбрать цвет проекта «${esc(p.name)}»" title="Цвет проекта"></button>`:`<span class="dot" style="background:${projColor(pid)}"></span>`;
-    return `<div class="sn-pw" style="--d:${d}">${d===0?dot:''}<button class="sn-proj" data-screen="${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}">${d===0?'':dot}<span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button></div>`+kids.map(([c])=>tree(c,d+1)).join('')};
+    return `<div class="sn-pw${ar?' arch':''}" style="--d:${d}">${d===0?dot:''}<button class="sn-proj" data-screen="${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}">${d===0?'':dot}<span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button></div>`+kids.map(([c])=>tree(c,d+1)).join('')};
   $('#chips').innerHTML=`<div class="sn-sec">
       ${item('data-screen="projects"',I.list,'Проекты',open||null,S.screen==='projects')}
       ${item('data-screen="done"',I.donec,'Выполненные',(()=>{let n=0;for(const k in S.projects)for(const t of S.projects[k].tasks)if(t.status==='done')n++;return n||null})(),S.screen==='done')}
@@ -1089,7 +1115,7 @@ function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
       ${item('data-nav="graph"',I.graph,'Граф',null,isMap&&S.mapView==='graph')}
     </div>
     <div class="sn-h"><span>Мои проекты</span><button class="sn-add" data-act="newproj" aria-label="Новый проект" title="Новый проект">${I.plus}</button></div>
-    <div class="sn-list">${topProjects().map(([pid])=>tree(pid,0)).join('')||'<div class="hint" style="padding:6px 10px">Проектов пока нет</div>'}</div>`;
+    <div class="sn-list">${topProjects().filter(([pid])=>visProj(pid)).map(([pid])=>tree(pid,0)).join('')||'<div class="hint" style="padding:6px 10px">Проектов пока нет</div>'}</div>`;
   const t=$('#mbarTitle');if(t)t.textContent=S.screen==='done'?'Выполненные':S.screen==='projects'?'Проекты':isMap?(S.mapView==='graph'?'Граф':'Дерево'):(S.projects[S.screen]?S.projects[S.screen].name:'');
 }
 function renderMain(){syncTab();renderTabs();stopGraph();$('#main').style.removeProperty('--pc');if(S.screen==='map')renderMapScreen();else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else renderProject()}
@@ -1121,7 +1147,7 @@ function projCard(pid,f,today,isSub){
   </div>`}
 function hasHits(pid,f,today){if(f==='all')return true;if(filterTasks(S.projects[pid],f,today).length)return true;return childProjects(pid).some(([c])=>hasHits(c,f,today))}
 function subCascade(pid,f,today){return childProjects(pid).filter(([c])=>hasHits(c,f,today)).map(([c])=>`<div class="sub-node">${projCard(c,f,today,true)}${childProjects(c).length?`<div class="sub-kids">${subCascade(c,f,today)}</div>`:''}</div>`).join('')}
-function pStatus(p,today){const s=stats(p);const late=p.tasks.some(t=>t.status!=='done'&&t.due&&t.due<today);
+function pStatus(p,today,pid){if(pid&&isArch(pid))return['arch','В архиве'];const s=stats(p);const late=p.tasks.some(t=>t.status!=='done'&&t.due&&t.due<today);
   if(s.t&&s.d===s.t)return['done','Готово'];if(late)return['late','Просрочено'];if(s.d||p.tasks.some(t=>t.status==='doing'))return['doing','В работе'];return['idle',s.t?'Не начат':'Нет задач']}
 function ringSVG(pct,st,sz){return `<svg class="ring ${st}" width="${sz}" height="${sz}" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7" class="rb"></circle>${pct>0?`<circle cx="9" cy="9" r="7" class="rf" stroke-dasharray="${(pct*0.44).toFixed(1)} 44" transform="rotate(-90 9 9)"></circle>`:''}</svg>`}
 function pNext(p){return p.tasks.filter(t=>t.status!=='done'&&t.due).map(t=>t.due).sort()[0]||''}
@@ -1154,21 +1180,21 @@ function nlItems(pid,pad,f,today){
   }
   return h}
 function nlSubs(pid,depth,f,today){
-  return childProjects(pid).filter(([c])=>treeMatch(c,f,today)).map(([c,cp])=>{const st=pStatus(cp,today);
-    return `<div class="nl-row nl-s" data-screen="${c}" role="button" tabindex="0">
+  return childProjects(pid).filter(([c])=>visProj(c)&&treeMatch(c,f,today)).map(([c,cp])=>{const st=pStatus(cp,today,c);
+    return `<div class="nl-row nl-s${isArch(c)?' arch':''}" data-screen="${c}" role="button" tabindex="0">
       <span class="nl-name" style="padding-left:${16+depth*22}px"><span class="nl-tie" aria-hidden="true"></span><span class="dot" style="background:${projColor(c)}"></span><span class="t">${esc(cp.name||'Без названия')}</span>${(cp.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${cp.memos.length}</span>`:''}</span>
       ${nlCells(cp,st,today,true)}
-      <span class="nl-x"><button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlItems(c,16+depth*22+22,f,today)+nlSubs(c,depth+1,f,today)}).join('')}
+      <span class="nl-x">${archBtn(c)}<button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlItems(c,16+depth*22+22,f,today)+nlSubs(c,depth+1,f,today)}).join('')}
 function renderProjects(){
   const list=sortedProjects();const today=todayStr();let f=S.pfilter||'all';if(!NF.some(x=>x[0]===f))f='all';
-  let open=0,late=0;for(const [,p] of list)for(const t of p.tasks)if(t.status!=='done'){open++;if(t.due&&t.due<today)late++}
-  const groups=topProjects().filter(([pid])=>treeMatch(pid,f,today)).map(([pid,p])=>{
-    const st=pStatus(p,today);const nsub=childProjects(pid).length;const collapsed=S.pcol.includes(pid)&&f==='all';
-    return `<div class="nl-group">
+  let open=0,late=0,narch=0;for(const [id,p] of list){if(isArch(id)){narch++;continue}for(const t of p.tasks)if(t.status!=='done'){open++;if(t.due&&t.due<today)late++}}
+  const groups=topProjects().filter(([pid])=>visProj(pid)&&treeMatch(pid,f,today)).map(([pid,p])=>{
+    const st=pStatus(p,today,pid);const nsub=childProjects(pid).length;const collapsed=S.pcol.includes(pid)&&f==='all';
+    return `<div class="nl-group${isArch(pid)?' arch':''}">
       <div class="nl-row nl-g" data-screen="${pid}" role="button" tabindex="0">
         <span class="nl-name"><button class="nl-chev" data-pcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><button class="sq sqb" data-colorfor="${pid}" style="background:${projColor(pid)}" aria-label="Выбрать цвет проекта" title="Цвет проекта"></button><span class="t">${esc(p.name||'Без названия')}</span>${nsub?`<span class="nl-meta num">${nsub} подпр.</span>`:''}${(p.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${p.memos.length}</span>`:''}</span>
         ${nlCells(p,st,today,false)}
-        <span class="nl-x"><button class="icodel" data-delsub="${pid}" aria-label="Удалить проект «${esc(p.name)}»" title="Удалить">${I.trash}</button></span>
+        <span class="nl-x">${archBtn(pid)}<button class="icodel" data-delsub="${pid}" aria-label="Удалить проект «${esc(p.name)}»" title="Удалить">${I.trash}</button></span>
       </div>${nlAsk(pid,nsub)}
       ${collapsed?'':nlItems(pid,16,f,today)+nlSubs(pid,0,f,today)+(f==='all'?`<form class="nl-add" data-subto="${pid}"><span class="nl-tie" aria-hidden="true"></span><input placeholder="+ Новый подпроект" maxlength="80" autocomplete="off" aria-label="Новый подпроект в «${esc(p.name)}»"></form>`:'')}
     </div>`}).join('');
@@ -1176,8 +1202,8 @@ function renderProjects(){
   $('#main').innerHTML=`<section class="nl-top">
       <h1 class="nl-h1">Проекты</h1>
       <div class="nl-seg" role="group" aria-label="Фильтр">${NF.map(([k,l])=>`<button data-pf="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
-      <span class="nl-sum num">${list.length} ${plural(list.length,'проект','проекта','проектов')} · ${open} открыто${late?` · <span class="late">${late} просрочено</span>`:''}</span>
-      <button class="nl-tg" data-act="pitems" aria-pressed="${S.pitems!==false}">${I.task}${I.memo} Задачи и заметки</button>
+      <span class="nl-sum num">${list.length-narch} ${plural(list.length-narch,'проект','проекта','проектов')}${narch?` + ${narch} в архиве`:''} · ${open} открыто${late?` · <span class="late">${late} просрочено</span>`:''}</span>
+      <button class="nl-tg" data-act="pitems" aria-pressed="${S.pitems!==false}">${I.task}${I.memo} Задачи и заметки</button>${narch?archToggle('nl-tg'):''}
       ${topProjects().length?`<button class="ghost" data-act="${allClosed?'expandall':'collapseall'}">${allClosed?'Развернуть все':'Свернуть все'}</button>`:''}
       <button class="btn" data-act="newproj">${I.plus} Новый проект</button>
     </section>
@@ -1198,12 +1224,12 @@ function renderDone(){
   const q=(S.dq||'').trim().toLowerCase();
   const desc=pid=>{const out=[pid];for(const [c] of childProjects(pid))out.push(...desc(c));return out};
   let total=0;
-  const groups=topProjects().map(([pid,p])=>{
-    const rows=[];for(const id of desc(pid)){const sp=S.projects[id];for(const t of sp.tasks){if(t.status!=='done')continue;if(from&&!((t.doneAt||0)>=from))continue;
+  const groups=topProjects().filter(([pid])=>visProj(pid)).map(([pid,p])=>{
+    const rows=[];for(const id of desc(pid)){if(!visProj(id))continue;const sp=S.projects[id];for(const t of sp.tasks){if(t.status!=='done')continue;if(from&&!((t.doneAt||0)>=from))continue;
       if(q&&!((t.title||'').toLowerCase().includes(q)||(sp.name||'').toLowerCase().includes(q)))continue;rows.push([t,id])}}
     if(!rows.length)return'';total+=rows.length;rows.sort((a,b)=>(b[0].doneAt||0)-(a[0].doneAt||0));
     const collapsed=S.dcol&&S.dcol.includes(pid);
-    return `<div class="nl-group">
+    return `<div class="nl-group${isArch(pid)?' arch':''}">
       <div class="nl-row dn-row nl-g" data-screen="${pid}" role="button" tabindex="0">
         <span class="nl-name"><button class="nl-chev" data-dcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><span class="sq" style="background:${projColor(pid)}"></span><span class="t">${esc(p.name||'Без названия')}</span></span>
         <span class="dn-p"></span><span class="dn-n num">${rows.length} ${plural(rows.length,'задача','задачи','задач')}</span><span></span></div>
@@ -1218,7 +1244,7 @@ function renderDone(){
       <h1 class="nl-h1">Выполненные</h1>
       <div class="nl-seg" role="group" aria-label="Период">${DF.map(([k,l])=>`<button data-df="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
       <input class="dn-q" id="dq" type="search" placeholder="Найти задачу или проект" value="${esc(S.dq||'')}" aria-label="Поиск по выполненным задачам" autocomplete="off">
-      <span class="nl-sum num">${total} ${plural(total,'задача','задачи','задач')}</span>
+      ${Object.keys(S.projects).some(isArch)?archToggle('nl-tg'):''}<span class="nl-sum num">${total} ${plural(total,'задача','задачи','задач')}</span>
     </section>
     <div class="nl dn">
       <div class="nl-row dn-row nl-hd" aria-hidden="true"><span>Задача</span><span class="dn-p">Подпроект</span><span class="r dn-d">Выполнена</span><span></span></div>
@@ -1234,7 +1260,8 @@ function renderProject(){
   $('#main').style.setProperty('--pc',projColor(pid));
   $('#main').innerHTML=`<section class="phead">
     ${chain.length?`<div class="crumb">${chain.map(c=>`<button data-screen="${c}">${esc(S.projects[c].name)}</button>`).join('<span>›</span>')}<span>›</span></div>`:''}
-    <div class="ptitle"><button class="sn-dot big" data-colorfor="${topProjOf(pid)}" style="background:${projColor(pid)}" aria-label="Цвет проекта" title="${chain.length?'Цвет задаётся у корневого проекта':'Цвет проекта'}"></button><input class="pname" id="projName" value="${esc(p.name)}" aria-label="Название проекта" maxlength="80"><button class="icodel big" data-act="delproj" aria-label="Удалить проект" title="Удалить проект">${I.trash}</button></div>
+    <div class="ptitle"><button class="sn-dot big" data-colorfor="${topProjOf(pid)}" style="background:${projColor(pid)}" aria-label="Цвет проекта" title="${chain.length?'Цвет задаётся у корневого проекта':'Цвет проекта'}"></button><input class="pname" id="projName" value="${esc(p.name)}" aria-label="Название проекта" maxlength="80">${archBtn(pid,true)}<button class="icodel big" data-act="delproj" aria-label="Удалить проект" title="Удалить проект">${I.trash}</button></div>
+    ${isArch(pid)?`<div class="arch-note">${I.arch}<span>${p.archived?'Проект в архиве — на картах и в списках он бледно-серый.':'В архиве вместе с «'+esc(S.projects[projChain(pid).find(c=>S.projects[c].archived)].name)+'».'}</span>${p.archived?'<button class="ghost" data-arch="'+pid+'">Вернуть из архива</button>':''}</div>`:''}
     <div><button class="btn sec" data-act="projonmap">${I.map} На карте</button></div>
     <div class="pmeta"><div class="bar" aria-hidden="true"><b></b></div><span id="pstat"></span></div>
     ${S.confirmDel?`<div class="pc-ask wide"><span>Удалить проект «${esc(p.name)}» со всеми задачами и веткой на карте?${nsub?' Подпроекты останутся и поднимутся на уровень выше.':''}</span><button class="askb danger" data-act="delproj-yes">Удалить</button><button class="askb" data-act="delproj-no">Отмена</button></div>`:''}
@@ -1456,7 +1483,7 @@ const MAXW=230,VG=12,HG=46;
 let TG={};
 const TVP={x:0,y:0,k:1,init:false};
 function layoutTree(){
-  buildVirtual();const m=S.map,G={};
+  buildVirtual();AR=archNodes();const m=S.map,G={};
   const metrics=id=>{const n=nodeObj(id),root=id==='root',virt=!m[id];const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
     let extra=root?36:(taskOf(n)?42:n.memoId?45:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
     return{label,st,w:Math.max(root?120:56,textW(label,font)+extra),h:root?48:(n.project?38:virt?30:34)}};
@@ -1464,7 +1491,7 @@ function layoutTree(){
   const place=(id,x,top,dir,branch,depth)=>{const g=G[id],n=nodeObj(id);g.cy=top+g.sub/2;g.x=dir>0?x:x-g.w;g.y=g.cy-g.h/2;g.dir=dir;g.branch=branch;g.depth=depth;
     if(n.collapsed)return;let y=g.cy-g.kh/2;const nx=dir>0?g.x+g.w+HG:g.x-HG;for(const c of treeKids(id)){place(c,nx,y,dir,branch,depth+1);y+=G[c].sub+VG}};
   const R=G.root=metrics('root');R.depth=0;R.branch=null;R.x=-R.w/2;R.y=-R.h/2;R.cy=0;R.dir=1;
-  const kids=m.root.children.filter(c=>m[c]);const right=kids.filter(c=>m[c].side!=='left'),left=kids.filter(c=>m[c].side==='left');
+  const kids=m.root.children.filter(c=>m[c]&&(showArch()||!AR.has(c)));const right=kids.filter(c=>m[c].side!=='left'),left=kids.filter(c=>m[c].side==='left');
   const stack=(arr,dir)=>{let tot=0;arr.forEach((c,i)=>{tot+=size(c)+(i?VG*1.6:0)});let y=-tot/2;arr.forEach(c=>{place(c,dir>0?R.w/2+HG+10:-R.w/2-HG-10,y,dir,c,1);y+=G[c].sub+VG*1.6})};
   stack(right,1);stack(left,-1);
   return G;
@@ -1472,7 +1499,7 @@ function layoutTree(){
 function branchColor(bid){if(!bid)return'var(--ink)';const n=S.map[bid];if(n&&n.project&&S.projects[n.project])return projColor(n.project);const i=S.map.root.children.indexOf(bid);return `var(${PCOL[(i<0?0:i)%PCOL.length]})`}
 function mountTree(){
   $('#mapbox').innerHTML=`<svg id="tsvg" aria-label="Карта проектов, дерево"><g id="tg"></g></svg>
-    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>☐ задача</span><span style="color:var(--warn)">◧ в работе</span><span style="color:var(--ok)">☑ готово</span><span style="color:var(--bad)">☐ просрочено</span><span>☰ заметка</span><span>⊕ ветка свёрнута</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button></div>
+    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>☐ задача</span><span style="color:var(--warn)">◧ в работе</span><span style="color:var(--ok)">☑ готово</span><span style="color:var(--bad)">☐ просрочено</span><span>☰ заметка</span><span>⊕ ветка свёрнута</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${archToggle('gbtn')}</div>
     <div class="mtools"><button class="gbtn ico" data-z="in" aria-label="Приблизить">${I.plus}</button><button class="gbtn ico" data-z="out" aria-label="Отдалить">${I.minus}</button><button class="gbtn ico" data-z="fit" aria-label="Вписать карту">${I.fit}</button></div>
     <div class="mbar" id="mbar"></div><div id="npwrap"></div>`;
   drawTree();renderMbar();renderPanel();
@@ -1482,12 +1509,12 @@ function mountTree(){
 function drawTree(){
   const g=$('#tg');if(!g)return;const m=S.map;TG=layoutTree();let html='';
   const edges=id=>{const n=nodeObj(id);if(n.collapsed)return;const a=TG[id];for(const c of treeKids(id)){const b=TG[c];if(!b||b.x===undefined)continue;
-    const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;const virt=!m[c];
-    html+=`<path class="edge${virt?' vedge':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${virt?.45:b.depth>1?.6:.9}"/>`;edges(c)}};
+    const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;const virt=!m[c];const ar=AR.has(c)||(virt&&AR.has(id));
+    html+=`<path class="edge${virt?' vedge':''}${ar?' arch':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${virt?.45:b.depth>1?.6:.9}"/>`;edges(c)}};
   edges('root');
   for(const id in TG){const a=TG[id];if(a.x===undefined)continue;const n=nodeObj(id);const virt=!m[id];const root=id==='root';const col=branchColor(a.branch);const t=taskOf(n);
     const isP=n.project&&S.projects[n.project];
-    const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
+    const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+((AR.has(id)||(virt&&AR.has(n.par)))?' arch':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
     let mark='';const cx=a.x+15,cy=a.cy;
     if(t){const late=t.status!=='done'&&t.due&&t.due<todayStr();const sc=t.status==='done'?'var(--ok)':late?'var(--bad)':t.status==='doing'?'var(--warn)':'var(--muted)';
       mark=t.status==='done'?`<rect x="${cx-6.5}" y="${cy-6.5}" width="13" height="13" rx="3.5" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
@@ -1556,17 +1583,17 @@ try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{re
 new MutationObserver(()=>{readColors();if(cv)refreshGraph()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 function linksOf(body){const out=[];for(const m of (body||'').matchAll(/\[\[([^\]\|#\n]+)/g))out.push(m[1].trim());return out}
 function buildGraph(){
-  const m=S.map,nodes=[],edges=[],keys=new Set();
+  const m=S.map,nodes=[],edges=[],keys=new Set();AR=archNodes();const hideA=!showArch();
   const addE=(a,b,kind)=>{if(a===b)return;const k=a<b?a+'|'+b:b+'|'+a;if(keys.has(k))return;keys.add(k);edges.push({a,b,kind})};
-  for(const id in m)nodes.push({id,kind:'node',label:m[id].text||'…'});
-  for(const id in m)for(const c of m[id].children)if(m[c])addE(id,c,'tree');
+  for(const id in m){if(hideA&&AR.has(id))continue;nodes.push({id,kind:'node',label:m[id].text||'…',arch:AR.has(id)})}
+  for(const id in m)for(const c of m[id].children)if(m[c]&&!(hideA&&AR.has(c)))addE(id,c,'tree');
   buildVirtual();
-  for(const pid in VK)if(m[pid])for(const k of VK[pid]){const v=VN[k];nodes.push({id:k,kind:v.kind,label:v.text,src:pid,taskId:v.taskId,taskPid:v.taskPid,memoId:v.memoId});addE(pid,k,'tree')}
+  for(const pid in VK)if(m[pid]&&!(hideA&&AR.has(pid)))for(const k of VK[pid]){const v=VN[k];nodes.push({id:k,kind:v.kind,label:v.text,src:pid,taskId:v.taskId,taskPid:v.taskPid,memoId:v.memoId,arch:AR.has(pid)});addE(pid,k,'tree')}
   const ghosts={};
-  for(const id in m)for(const t of linksOf(m[id].body)){const tid=nodeByText(t);if(tid)addE(id,tid,'link');else{const gid='ghost:'+lc(t);if(!ghosts[gid]){ghosts[gid]=1;nodes.push({id:gid,kind:'ghost',label:t,src:id})}addE(id,gid,'link')}}
+  for(const id in m){if(hideA&&AR.has(id))continue;for(const t of linksOf(m[id].body)){const tid=nodeByText(t);if(tid)addE(id,tid,'link');else{const gid='ghost:'+lc(t);if(!ghosts[gid]){ghosts[gid]=1;nodes.push({id:gid,kind:'ghost',label:t,src:id})}addE(id,gid,'link')}}}
   const deg=new Map();for(const e of edges){deg.set(e.a,(deg.get(e.a)||0)+1);deg.set(e.b,(deg.get(e.b)||0)+1)}
   let out=nodes;if(!S.gopt.orphans)out=nodes.filter(n=>deg.get(n.id)||n.id==='root');
-  const ids=new Set(out.map(n=>n.id));return{nodes:out,edges:edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),deg};
+  const ids=new Set(out.map(n=>n.id));const okE=e=>ids.has(e.a)&&ids.has(e.b);return{nodes:out,edges:edges.filter(okE),deg};
 }
 function branchOfNode(id,par){let c=id,g=0;while(c&&c!=='root'&&g++<200){const p=par.get(c);if(p==='root'||p==null)return c;c=p}return null}
 function branchHex(bid){if(!bid)return colors.ink;const n=S.map[bid];if(n&&n.project&&S.projects[n.project]){const tp=S.projects[topProjOf(n.project)];const c=tp?tp.color:0;return typeof c==='string'&&c[0]==='#'?c:colors.b[(+c||0)%PCOL.length]}
@@ -1614,6 +1641,7 @@ function refreshGraph(){
      s.color=branchHex(branchOfNode(s.id,par));
      const t=s.kind==='task'?(S.projects[s.taskPid]||{tasks:[]}).tasks.find(x=>x.id===s.taskId):(S.map[s.id]?taskOf(S.map[s.id]):null);
      s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'memo':(s.kind==='task'||(S.map[s.id]&&t))?'task':null;
+     if(s.arch){s.color=colors.ghost;s.ring=null}
      if(s.kind==='task'||s.kind==='memo')s.r=6*(S.gopt.size||1)}
    /* размер по «весу» ветки: подпроекты считаются полностью, прочие узлы — наполовину, задачи и заметки — на четверть */
    if(S.gopt.sizeMode!=='same'){const sz=S.gopt.size||1,kids=new Map();for(const e of g.edges)if(e.kind==='tree')(kids.get(e.a)||kids.set(e.a,[]).get(e.a)).push(e.b);
@@ -1622,7 +1650,7 @@ function refreshGraph(){
      let mx=0;for(const s of next.values()){if(s.kind!=='node'||s.id==='root')continue;const w=wt(s.id,new Set());
        s.r=Math.min(58,(s.isP?5.5:4.5)+(s.isP?10:6)*Math.pow(w,.7))*sz;s.w=w;if(s.r>mx)mx=s.r}
      const rt=next.get('root');if(rt)rt.r=Math.max(14*sz,mx*.8)}}
-  SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'?next.get(e.b).color:null}));SIM.adj=adj;
+  SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'?next.get(e.b).color:null,arch:!!(next.get(e.b).arch)}));SIM.adj=adj;
   if(S.gopt.group){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else for(const n of SIM.list){n.tx=null;n.ty=null}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
   if(sig!==SIM.sig){SIM.sig=sig;if(fresh===SIM.list.length&&fresh){SIM.alpha=1;for(let i=0;i<320;i++)tick();SIM.alpha=.1;if(!GVP.init)graphFit()}else SIM.alpha=Math.max(SIM.alpha,.45)}
@@ -1658,16 +1686,16 @@ function draw(){
   const dim=id=>(F&&!F.has(id))||(M&&!M.has(id));const sel=S.panel?S.sel:null;
   ctx.lineCap='round';
   for(const e of SIM.edges){const hl=hover&&(e.a===hover.id||e.b===hover.id);const dm=(F&&!hl)||(M&&dim(e.a)&&dim(e.b));
-    ctx.globalAlpha=dm?.1:hl?.95:e.kind==='link'?.6:(e.bc?.5:.8);ctx.strokeStyle=hl?colors.accent:(e.bc||colors.edge);ctx.lineWidth=(hl?1.7:e.kind==='tree'?1.2:1)/Math.sqrt(v.k);
+    ctx.globalAlpha=(dm?.1:hl?.95:e.kind==='link'?.6:(e.bc?.5:.8))*(e.arch&&!hl?.45:1);ctx.strokeStyle=hl?colors.accent:(e.bc||colors.edge);ctx.lineWidth=(hl?1.7:e.kind==='tree'?1.2:1)/Math.sqrt(v.k);
     ctx.setLineDash(e.kind==='link'?[4/v.k,3/v.k]:[]);ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);ctx.lineTo(e.t.x,e.t.y);ctx.stroke()}
   ctx.setLineDash([]);
-  for(const n of SIM.list){ctx.globalAlpha=dim(n.id)?.16:1;const col=hover&&hover.id===n.id?colors.accent:n.color;
+  for(const n of SIM.list){ctx.globalAlpha=(dim(n.id)?.16:1)*(n.arch&&!(hover&&hover.id===n.id)?.45:1);const col=hover&&hover.id===n.id?colors.accent:n.color;
     if(n.kind==='ghost'){ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.fillStyle=colors.bg;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill();ctx.stroke()}
     else if(n.shape==='task'){const r=n.r*.92,rr=(x,y,w)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-w,y-w,w*2,w*2,w*.38);else ctx.rect(x-w,y-w,w*2,w*2)};
       if(n.done)ctx.globalAlpha*=.6;ctx.fillStyle=col;rr(n.x,n.y,r);ctx.fill();
       if(n.ring){ctx.strokeStyle=n.ring;ctx.lineWidth=Math.max(1.5,r*.38);rr(n.x,n.y,r+ctx.lineWidth*.6);ctx.stroke()}
       ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(1,r*.28);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(n.x-r*.5,n.y+r*.02);ctx.lineTo(n.x-r*.12,n.y+r*.42);ctx.lineTo(n.x+r*.55,n.y-r*.4);ctx.stroke()}
-    else if(n.shape==='memo'){const r=n.r*1.2;ctx.fillStyle=hover&&hover.id===n.id?colors.accent:colors.memo;ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fill();
+    else if(n.shape==='memo'){const r=n.r*1.2;ctx.fillStyle=hover&&hover.id===n.id?colors.accent:n.arch?colors.ghost:colors.memo;ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(.9,r*.2);ctx.lineCap='round';ctx.beginPath();for(const dy of[-.38,0,.38]){ctx.moveTo(n.x-r*.45,n.y+dy*r);ctx.lineTo(n.x+r*.5,n.y+dy*r)}ctx.stroke()}
     else{ctx.fillStyle=col;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill()}
     if(n.id===sel){ctx.globalAlpha=1;ctx.strokeStyle=colors.accent;ctx.lineWidth=2/v.k;ctx.beginPath();ctx.arc(n.x,n.y,n.r+4/v.k,0,Math.PI*2);ctx.stroke()}}
@@ -1676,7 +1704,7 @@ function draw(){
   for(const n of SIM.list){const special=(F&&F.has(n.id))||(M&&M.has(n.id))||n.id===sel;const big=n.id==='root'||n.isP;
     const fs=(big?13.5:12.5)*ts;const onScreen=fs*v.k;
     let a=S.gopt.labels?Math.max(0,Math.min(1,(onScreen-5.5)/3.5)):0;if(big&&S.gopt.labels)a=Math.max(a,Math.min(1,(onScreen-3)/3));if(special)a=1;
-    if(F&&!F.has(n.id))a*=.15;if(M&&!M.has(n.id))a*=.15;if(a<.03)continue;
+    if(F&&!F.has(n.id))a*=.15;if(M&&!M.has(n.id))a*=.15;if(n.arch&&!special)a*=.5;if(a<.03)continue;
     const efs=special&&onScreen<11?11/v.k:fs;   // hovered/found labels stay readable when zoomed out
     ctx.globalAlpha=a;ctx.font=`${big?600:500} ${efs}px ${F_BODY}`;ctx.fillStyle=n.kind==='ghost'?colors.muted:colors.ink;
     let t=n.label;if(t.length>34)t=t.slice(0,33)+'…';ctx.fillText(t,n.x,n.y+n.r+3)}
@@ -1694,7 +1722,7 @@ function mountGraph(){
   $('#mapbox').innerHTML=`<canvas id="gcv" aria-label="Карта проектов, граф"></canvas>
     <div class="mtop">${searchBox()}
       <button class="gbtn pri" data-g="new">${I.plus} Узел</button>
-      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>
+      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${archToggle('gbtn')}
       <button class="gbtn" data-g="set" aria-pressed="${S.showSet}">${I.gear} Настройки</button>
       <button class="gbtn ico" data-g="fit" aria-label="Показать весь граф">${I.fit}</button>
     </div>${S.showSet?setPanel():''}
@@ -1934,6 +1962,8 @@ document.addEventListener('click',e=>{
   if(b.dataset.delnode){const k=b.dataset.delnode;if(!S.map[k])return;
     if(subtree(k).some(x=>S.map[x].project&&S.projects[S.map[x].project])){S.sel=k;S.panel=true;S.confirmNode=k;redrawMap();renderMbar();renderPanel();return}
     const r=deleteBranch(k);redrawMap();renderMbar();renderPanel();toast(r.n>1?`Удалено узлов: ${r.n}`:'Узел удалён',()=>{r.undo();render()});return}
+  if(b.dataset.arch){e.stopPropagation();const pid=b.dataset.arch;setArch(pid,!S.projects[pid].archived);return}
+  if(b.dataset.act==='showarch'){S.showArch=!showArch();cacheLocal();GVP.auto=true;TVP.init=false;render();if(S.screen==='map'&&S.mapView==='tree')treeFit();return}
   if(b.dataset.df){S.dfilter=b.dataset.df;renderDone();return}
   if(b.dataset.dcol){e.stopPropagation();S.dcol=S.dcol||[];const i=S.dcol.indexOf(b.dataset.dcol);if(i<0)S.dcol.push(b.dataset.dcol);else S.dcol.splice(i,1);renderDone();return}
   if(b.dataset.tabclose){e.stopPropagation();closeTab(b.dataset.tabclose);return}
@@ -2027,7 +2057,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- boot ---------- */
 try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.parse(lsGet(LSK+'.map')||'null');if(mp&&mp.root)S.map=mp;
   const ui=JSON.parse(lsGet(UIK)||'{}');if(Array.isArray(ui.tabs)&&ui.tabs.length){S.tabs=ui.tabs;S.tab=ui.tab}if(ui.split&&!PANE)S.split=ui.split;
-  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
+  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.showArch===false)S.showArch=false;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
 if(!S.map)S.map=newMap();
 if(!S.skin)S.skin='night';
 if(S.skin&&S.skin!=='shtab'){document.documentElement.dataset.skin=S.skin;loadFonts([SKINS.find(x=>x.id===S.skin)||SKINS[0]]);updFonts();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
