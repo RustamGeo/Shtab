@@ -601,6 +601,13 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .nl-top .btn{padding:7px 12px;font-size:13px}
 .nl{margin-top:12px;border:1px solid var(--line);border-radius:var(--rc);overflow:hidden;background:var(--bg)}
 .nl-row{display:grid;grid-template-columns:minmax(0,1fr) 116px 70px 84px 104px 34px;gap:0 12px;align-items:center;padding:0 10px 0 14px}
+.nl-row.dn-row{grid-template-columns:minmax(0,1fr) minmax(0,220px) 84px 34px}
+.dn .nl-i .t{color:var(--muted)}
+.dn-p{min-width:0}.dn-d,.dn-n{text-align:right;justify-self:end;font-size:12px;color:var(--muted)}
+.dn-n{grid-column:3}
+.dn-sub{display:inline-flex;align-items:center;gap:6px;max-width:100%;border:0;background:transparent;padding:2px 0;color:var(--muted);font-size:12px;cursor:pointer;min-width:0}
+.dn-sub span.dot{width:7px;height:7px;border-radius:50%;flex:none}.dn-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dn-sub:hover{color:var(--ink)}
+.dn-q{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--rs);padding:6px 10px;font-size:13px;min-width:0;width:220px;max-width:100%}
 .nl-hd{height:32px;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);background:var(--surface)}
 .nl-hd .r,.nl-open,.nl-st{text-align:right;justify-self:end}
 .nl-g{min-height:42px;background:var(--surface);border-bottom:1px solid var(--line);cursor:pointer}
@@ -651,6 +658,7 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .nl + .backup{margin-top:18px}
 @media (max-width:760px){
   .nl-row{grid-template-columns:minmax(0,1fr) auto 30px;gap:0 10px;padding-left:10px}
+  .nl-row.dn-row{grid-template-columns:minmax(0,1fr) auto 30px}.dn-p{display:none}.dn-n{grid-column:auto}.dn-q{width:100%;order:3}
   .nl-open,.nl-due,.nl-st,.nl-meta,.nl-tag,.nl-hd span:nth-child(3),.nl-hd span:nth-child(4),.nl-hd span:nth-child(5){display:none}
   .nl-g .nl-name .t{font-size:14.5px}
   .nl-row.nl-g .nl-name .sq{box-shadow:0 0 0 2px var(--surface)}
@@ -742,6 +750,7 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .panes.split #pane0{container-type:inline-size}
 @container (max-width:700px){
   .nl-row{grid-template-columns:minmax(0,1fr) auto 30px;gap:0 10px;padding-left:10px}
+  .nl-row.dn-row{grid-template-columns:minmax(0,1fr) auto 30px}.dn-p{display:none}.dn-n{grid-column:auto}.dn-q{width:100%;order:3}
   .nl-open,.nl-due,.nl-st,.nl-meta,.nl-tag,.nl-hd span:nth-child(3),.nl-hd span:nth-child(4),.nl-hd span:nth-child(5),.nl-prev,.nl-i .nl-st{display:none}
   .nl-prog svg{display:none}.nl-sum{margin-left:0;flex-basis:100%;order:3}
   .pgrid{grid-template-columns:minmax(0,1fr)}
@@ -805,6 +814,7 @@ const I={
   task:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8.2l2.1 2.1L11 6"/></svg>',
   splitv:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M8 2.5v11"/></svg>',
   splith:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M1.8 8h12.4"/></svg>',
+  donec:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.2"/><path d="M5.3 8.2l1.9 1.9 3.6-4"/></svg>',
   check:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>'
 };
 
@@ -870,7 +880,7 @@ function onSnap(qs){
     if(changed&&reconcile())persist('map');
   }
   if(!anyPending()){if(!lastSaved)lastSaved=Date.now();setSync('cloud')}
-  if(changed){cacheLocal();if(S.screen!=='map'&&S.screen!=='projects'&&!S.projects[S.screen])S.screen='map';if(!S.map[S.sel])S.sel='root';renderSafe()}
+  if(changed){cacheLocal();if(S.screen!=='map'&&S.screen!=='projects'&&S.screen!=='done'&&!S.projects[S.screen])S.screen='map';if(!S.map[S.sel])S.sel='root';renderSafe()}
 }
 async function initStore(){
   let db=null,user=null,id=null;
@@ -880,7 +890,7 @@ async function initStore(){
     const sub=()=>col.onSnapshot(onSnap,()=>{setSync('err');setTimeout(()=>{if(col)sub()},5000)});sub()}
   else setSync('local');
   try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){dl=null}
-  if(S.screen==='projects')renderProjects();
+  if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();
 }
 
 /* ---------- model ---------- */
@@ -1000,17 +1010,17 @@ function toast(msg,undo){
 const TYPING=['tTitle','tNotes','projName','newTask','noteTitle','noteBody','gsearch','nodeText'];
 function renderSafe(){
   const a=document.activeElement;
-  if(a&&TYPING.includes(a.id)){renderChips();if(S.screen==='map')redrawMap();else if(S.screen==='projects')renderProjects();else if(a.id!=='newTask'&&a.id!=='projName')renderListOnly();return}
+  if(a&&TYPING.includes(a.id)){renderChips();if(S.screen==='map')redrawMap();else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else if(a.id!=='newTask'&&a.id!=='projName')renderListOnly();return}
   render();
 }
 function render(){renderChips();renderMain();cacheLocal()}
 /* ---------- вкладки ---------- */
 function ensureTabs(){if(!Array.isArray(S.tabs)||!S.tabs.length){S.tabs=[{id:'t'+uid(),screen:S.screen,mapView:S.mapView}];S.tab=S.tabs[0].id}
   if(!S.tabs.some(t=>t.id===S.tab))S.tab=S.tabs[0].id;
-  for(const t of S.tabs)if(t.screen!=='map'&&t.screen!=='projects'&&!S.projects[t.screen])t.screen='projects'}
+  for(const t of S.tabs)if(t.screen!=='map'&&t.screen!=='projects'&&t.screen!=='done'&&!S.projects[t.screen])t.screen='projects'}
 const curTab=()=>S.tabs.find(t=>t.id===S.tab);
 function syncTab(){ensureTabs();const t=curTab();t.screen=S.screen;t.mapView=S.mapView}
-function tabTitle(t){if(t.screen==='projects')return['Проекты',null,'list'];if(t.screen==='map')return[t.mapView==='graph'?'Граф':'Дерево',null,t.mapView==='graph'?'graph':'tree'];
+function tabTitle(t){if(t.screen==='projects')return['Проекты',null,'list'];if(t.screen==='done')return['Выполненные',null,'donec'];if(t.screen==='map')return[t.mapView==='graph'?'Граф':'Дерево',null,t.mapView==='graph'?'graph':'tree'];
   const p=S.projects[t.screen];return[p?(p.name||'Без названия'):'Проект',p?projColor(t.screen):null,null]}
 function renderTabs(){
   const el=$('#tabbar');if(!el)return;ensureTabs();
@@ -1064,7 +1074,7 @@ window.addEventListener('resize',()=>{if(!PANE)applySplit();else renderTabs()});
 window.addEventListener('storage',e=>{
   if(e.key!==LSK&&e.key!==LSK+'.map')return;if(typeof anyPending==='function'&&anyPending())return;if(typeof col!=='undefined'&&col)return;
   try{if(e.key===LSK)S.projects=JSON.parse(e.newValue||'{}')||{};else{const m=JSON.parse(e.newValue||'null');if(m&&m.root)S.map=m}}catch(x){return}
-  if(!S.map[S.sel])S.sel='root';if(S.screen!=='map'&&S.screen!=='projects'&&!S.projects[S.screen])S.screen='projects';renderSafe()});
+  if(!S.map[S.sel])S.sel='root';if(S.screen!=='map'&&S.screen!=='projects'&&S.screen!=='done'&&!S.projects[S.screen])S.screen='projects';renderSafe()});
 function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
   const today=todayStr();let open=0;for(const pid in S.projects)for(const t of S.projects[pid].tasks)if(t.status!=='done')open++;
   const isMap=S.screen==='map';const curTop=S.projects[S.screen]?S.screen:null;
@@ -1074,14 +1084,15 @@ function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
     return `<div class="sn-pw" style="--d:${d}">${d===0?dot:''}<button class="sn-proj" data-screen="${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}">${d===0?'':dot}<span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button></div>`+kids.map(([c])=>tree(c,d+1)).join('')};
   $('#chips').innerHTML=`<div class="sn-sec">
       ${item('data-screen="projects"',I.list,'Проекты',open||null,S.screen==='projects')}
+      ${item('data-screen="done"',I.donec,'Выполненные',(()=>{let n=0;for(const k in S.projects)for(const t of S.projects[k].tasks)if(t.status==='done')n++;return n||null})(),S.screen==='done')}
       ${item('data-nav="tree"',I.tree,'Дерево',null,isMap&&S.mapView==='tree')}
       ${item('data-nav="graph"',I.graph,'Граф',null,isMap&&S.mapView==='graph')}
     </div>
     <div class="sn-h"><span>Мои проекты</span><button class="sn-add" data-act="newproj" aria-label="Новый проект" title="Новый проект">${I.plus}</button></div>
     <div class="sn-list">${topProjects().map(([pid])=>tree(pid,0)).join('')||'<div class="hint" style="padding:6px 10px">Проектов пока нет</div>'}</div>`;
-  const t=$('#mbarTitle');if(t)t.textContent=S.screen==='projects'?'Проекты':isMap?(S.mapView==='graph'?'Граф':'Дерево'):(S.projects[S.screen]?S.projects[S.screen].name:'');
+  const t=$('#mbarTitle');if(t)t.textContent=S.screen==='done'?'Выполненные':S.screen==='projects'?'Проекты':isMap?(S.mapView==='graph'?'Граф':'Дерево'):(S.projects[S.screen]?S.projects[S.screen].name:'');
 }
-function renderMain(){syncTab();renderTabs();stopGraph();$('#main').style.removeProperty('--pc');if(S.screen==='map')renderMapScreen();else if(S.screen==='projects')renderProjects();else renderProject()}
+function renderMain(){syncTab();renderTabs();stopGraph();$('#main').style.removeProperty('--pc');if(S.screen==='map')renderMapScreen();else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else renderProject()}
 
 /* ---------- all projects as a list ---------- */
 const expanded=new Set();
@@ -1179,6 +1190,44 @@ function renderProjects(){
       ${S.restoreAsk?`<div class="bask">Заменить текущие данные содержимым файла «${esc(S.restoreAsk.name)}» (${S.restoreAsk.n} ${plural(S.restoreAsk.n,'проект','проекта','проектов')})? <button class="ghost danger" data-act="restore-yes">Заменить</button><button class="ghost" data-act="restore-no">Отмена</button></div>`:''}</div>`;
 }
 
+/* ---------- выполненные задачи по проектам ---------- */
+const DF=[['all','Все'],['today','Сегодня'],['7','7 дней'],['30','30 дней']];
+function renderDone(){
+  let f=S.dfilter||'all';if(!DF.some(x=>x[0]===f))f='all';
+  const now=new Date();const from=f==='all'?0:f==='today'?new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime():Date.now()-(+f)*864e5;
+  const q=(S.dq||'').trim().toLowerCase();
+  const desc=pid=>{const out=[pid];for(const [c] of childProjects(pid))out.push(...desc(c));return out};
+  let total=0;
+  const groups=topProjects().map(([pid,p])=>{
+    const rows=[];for(const id of desc(pid)){const sp=S.projects[id];for(const t of sp.tasks){if(t.status!=='done')continue;if(from&&!((t.doneAt||0)>=from))continue;
+      if(q&&!((t.title||'').toLowerCase().includes(q)||(sp.name||'').toLowerCase().includes(q)))continue;rows.push([t,id])}}
+    if(!rows.length)return'';total+=rows.length;rows.sort((a,b)=>(b[0].doneAt||0)-(a[0].doneAt||0));
+    const collapsed=S.dcol&&S.dcol.includes(pid);
+    return `<div class="nl-group">
+      <div class="nl-row dn-row nl-g" data-screen="${pid}" role="button" tabindex="0">
+        <span class="nl-name"><button class="nl-chev" data-dcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><span class="sq" style="background:${projColor(pid)}"></span><span class="t">${esc(p.name||'Без названия')}</span></span>
+        <span class="dn-p"></span><span class="dn-n num">${rows.length} ${plural(rows.length,'задача','задачи','задач')}</span><span></span></div>
+      ${collapsed?'':rows.map(([t,id])=>{const sp=S.projects[id];const chain=id===pid?'':projChain(id).filter(c=>c!==pid).map(c=>S.projects[c].name).concat(sp.name).join(' › ');
+        return `<div class="nl-row dn-row nl-i" data-task="${t.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:16px"><span class="nl-tie" aria-hidden="true"></span><button class="ck done" data-ck="${t.id}" aria-label="Вернуть в работу «${esc(t.title)}»" title="Вернуть в работу"></button><span class="t">${esc(t.title||'Без названия')}</span></span>
+          <span class="dn-p">${chain?`<button class="dn-sub" data-screen="${id}" title="Открыть подпроект"><span class="dot" style="background:${projColor(id)}"></span>${esc(chain)}</button>`:''}</span>
+          <span class="dn-d num">${t.doneAt?fmtDate(ymd(new Date(t.doneAt))):'—'}</span>
+          <span class="nl-x"><button class="icodel" data-deltask="${t.id}" aria-label="Удалить задачу «${esc(t.title)}»" title="Удалить">${I.trash}</button></span></div>`}).join('')}
+    </div>`}).join('');
+  const active=document.activeElement&&document.activeElement.id==='dq';
+  $('#main').innerHTML=`<section class="nl-top">
+      <h1 class="nl-h1">Выполненные</h1>
+      <div class="nl-seg" role="group" aria-label="Период">${DF.map(([k,l])=>`<button data-df="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>
+      <input class="dn-q" id="dq" type="search" placeholder="Найти задачу или проект" value="${esc(S.dq||'')}" aria-label="Поиск по выполненным задачам" autocomplete="off">
+      <span class="nl-sum num">${total} ${plural(total,'задача','задачи','задач')}</span>
+    </section>
+    <div class="nl dn">
+      <div class="nl-row dn-row nl-hd" aria-hidden="true"><span>Задача</span><span class="dn-p">Подпроект</span><span class="r dn-d">Выполнена</span><span></span></div>
+      ${groups||`<div class="tempty">${q||f!=='all'?'Ничего не найдено — попробуйте другой период или запрос':'Выполненных задач пока нет. Отметьте задачу галочкой — она появится здесь.'}</div>`}
+    </div>`;
+  if(active){const i=$('#dq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+}
+document.addEventListener('input',e=>{if(e.target.id==='dq'){S.dq=e.target.value;renderDone()}});
+
 /* ---------- project screen: tasks table + subprojects side ---------- */
 function renderProject(){
   const pid=S.screen,p=S.projects[pid];const chain=projChain(pid);const nsub=childProjects(pid).length;
@@ -1248,7 +1297,7 @@ function deleteTask(pid,tid){
   persist(pid);
   return ()=>{S.projects[pid]=snapP;S.map=snapM;persist(pid);persist('map')};
 }
-function rerenderProj(){if(S.screen==='projects')renderProjects();else if(S.screen==='map')redrawMap();else if(S.projects[S.screen]){renderListOnly();renderSubs();renderMemos()}}
+function rerenderProj(){if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else if(S.screen==='map')redrawMap();else if(S.projects[S.screen]){renderListOnly();renderSubs();renderMemos()}}
 
 /* ---------- notes (заметки) inside a project: p.memos ---------- */
 function memoPreview(m){const l=(m.body||'').split('\n').map(x=>x.replace(/^#+\s*|^\s*[-*]\s+(\[[ xX]\]\s*)?/g,'').replace(/\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g,(a,b,c)=>c||b).trim()).find(Boolean);return l||''}
@@ -1276,7 +1325,7 @@ function renderMemoSheet(){
     <div class="hint">${m.updated?'Изменена '+fmtDate(ymd(new Date(m.updated)))+' в '+new Date(m.updated).toTimeString().slice(0,5):''}</div></div>`;
   L.appendChild(el);
   el.addEventListener('click',e=>{if(e.target===el)closeSheet()});
-  const save=()=>{m.updated=Date.now();persist(pid);if(S.screen===pid)renderMemos();else if(S.screen==='projects')renderProjects();else if(S.screen==='map')redrawMap()};
+  const save=()=>{m.updated=Date.now();persist(pid);if(S.screen===pid)renderMemos();else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else if(S.screen==='map')redrawMap()};
   el.querySelector('#memoTitle').oninput=e=>{m.title=e.target.value;save()};
   const ta=el.querySelector('#memoBody');if(ta){ta.oninput=()=>{m.body=ta.value;save()};setTimeout(()=>{ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)},30)}
   el.querySelectorAll('[data-mm]').forEach(b=>b.onclick=()=>{S.memoMode=b.dataset.mm;renderMemoSheet()});
@@ -1284,7 +1333,7 @@ function renderMemoSheet(){
   el.querySelector('[data-act="delmemo-sheet"]').onclick=()=>{const undo=deleteMemo(pid,m.id);closeSheet();rerenderProj();toast('Заметка удалена',()=>{undo();rerenderProj()})};
 }
 function setStatus(t,st){t.status=st;if(st==='done')t.doneAt=Date.now()}
-function afterTaskChange(pid){persist(pid);renderChips();if(S.screen==='map'){redrawMap();renderPanel(true);renderMbar()}else if(S.screen==='projects')renderProjects();else{renderListOnly();renderSubs()}}
+function afterTaskChange(pid){persist(pid);renderChips();if(S.screen==='map'){redrawMap();renderPanel(true);renderMbar()}else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else{renderListOnly();renderSubs()}}
 
 /* ---------- task sheet ---------- */
 function findTask(id){for(const pid in S.projects){const t=S.projects[pid].tasks.find(x=>x.id===id);if(t)return{t,pid}}return null}
@@ -1885,6 +1934,8 @@ document.addEventListener('click',e=>{
   if(b.dataset.delnode){const k=b.dataset.delnode;if(!S.map[k])return;
     if(subtree(k).some(x=>S.map[x].project&&S.projects[S.map[x].project])){S.sel=k;S.panel=true;S.confirmNode=k;redrawMap();renderMbar();renderPanel();return}
     const r=deleteBranch(k);redrawMap();renderMbar();renderPanel();toast(r.n>1?`Удалено узлов: ${r.n}`:'Узел удалён',()=>{r.undo();render()});return}
+  if(b.dataset.df){S.dfilter=b.dataset.df;renderDone();return}
+  if(b.dataset.dcol){e.stopPropagation();S.dcol=S.dcol||[];const i=S.dcol.indexOf(b.dataset.dcol);if(i<0)S.dcol.push(b.dataset.dcol);else S.dcol.splice(i,1);renderDone();return}
   if(b.dataset.tabclose){e.stopPropagation();closeTab(b.dataset.tabclose);return}
   if(b.dataset.act==='tabnew'){openTab('projects');return}
   if(b.dataset.act==='split-v'||b.dataset.act==='split-h'){const dir=b.dataset.act==='split-v'?'row':'col';S.split=Object.assign({ratio:.5},S.split||{},{dir});focusPane=1;cacheLocal();applySplit();return}
