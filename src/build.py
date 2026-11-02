@@ -4,7 +4,7 @@ import os, re, json, shutil, sys
 SP = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(SP)
 SB_VER = '2.45.4'
-APP_VER = 'v7'
+APP_VER = 'v8'
 
 s = open(os.path.join(SP, 'app.html')).read()
 def rep(a, b, cnt=1):

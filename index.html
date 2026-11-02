@@ -1718,7 +1718,14 @@ function refreshGraph(){
      s.color=branchHex(branchOfNode(s.id,par));
      const t=s.kind==='task'?(S.projects[s.taskPid]||{tasks:[]}).tasks.find(x=>x.id===s.taskId):(S.map[s.id]?taskOf(S.map[s.id]):null);
      s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'memo':(s.kind==='task'||(S.map[s.id]&&t))?'task':null;
-     if(s.kind==='task'||s.kind==='memo')s.r=6*(S.gopt.size||1)}}
+     if(s.kind==='task'||s.kind==='memo')s.r=6*(S.gopt.size||1)}
+   /* размер по «весу» ветки: подпроекты считаются полностью, прочие узлы — наполовину, задачи и заметки — на четверть */
+   if(S.gopt.sizeMode!=='same'){const sz=S.gopt.size||1,kids=new Map();for(const e of g.edges)if(e.kind==='tree')(kids.get(e.a)||kids.set(e.a,[]).get(e.a)).push(e.b);
+     const W=new Map(),own=s=>s.isP?1:s.kind==='node'?.5:(s.kind==='task'||s.kind==='memo')?.25:0;
+     const wt=(id,seen)=>{if(W.has(id))return W.get(id);if(seen.has(id))return 0;seen.add(id);let t=0;for(const c of kids.get(id)||[]){const cs=next.get(c);if(cs)t+=own(cs)+wt(c,seen)}W.set(id,t);return t};
+     let mx=0;for(const s of next.values()){if(s.kind!=='node'||s.id==='root')continue;const w=wt(s.id,new Set());
+       s.r=Math.min(58,(s.isP?5.5:4.5)+(s.isP?10:6)*Math.pow(w,.7))*sz;s.w=w;if(s.r>mx)mx=s.r}
+     const rt=next.get('root');if(rt)rt.r=Math.max(14*sz,mx*.8)}}
   SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'?next.get(e.b).color:null}));SIM.adj=adj;
   if(S.gopt.group){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else for(const n of SIM.list){n.tx=null;n.ty=null}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
@@ -1814,7 +1821,7 @@ function setPanel(){const o=S.gopt;const R=(id,label,min,max,step,val,hint)=>`<l
   ${o.group?'':R('optCenter','Притяжение к центру',0,3,0.1,o.center,'Меньше — граф шире, больше — компактнее')}
   <label class="ckl"><input type="checkbox" id="optNoLabel" ${o.nolabel?'checked':''}> Не перекрывать подписи</label>
   <div class="gset-g">Вид</div>
-  <label>Размер узлов<select id="optSizeMode"><option value="links" ${o.sizeMode!=='same'?'selected':''}>По числу связей</option><option value="same" ${o.sizeMode==='same'?'selected':''}>Одинаковый</option></select></label>
+  <label>Размер узлов<select id="optSizeMode"><option value="links" ${o.sizeMode!=='same'?'selected':''}>По размеру ветки</option><option value="same" ${o.sizeMode==='same'?'selected':''}>Одинаковый</option></select></label>
   ${R('optSize','Масштаб узлов',0.5,2.5,0.1,o.size)}
   ${R('optText','Размер подписей',0.7,1.8,0.05,o.text)}
   <label class="ckl"><input type="checkbox" id="optLabels" ${o.labels?'checked':''}> Подписи</label>
