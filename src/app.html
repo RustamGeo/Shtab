@@ -927,6 +927,7 @@ const I={
   splith:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M1.8 8h12.4"/></svg>',
   arch:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="2.5" width="12.4" height="3.3" rx="1"/><path d="M3 5.8v6.7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.8M6.3 8.6h3.4"/></svg>',
   unarch:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="2.5" width="12.4" height="3.3" rx="1"/><path d="M3 5.8v6.7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.8M8 12.2V8M6.2 9.6 8 7.8l1.8 1.8"/></svg>',
+  newtab:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg>',
   donec:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.2"/><path d="M5.3 8.2l1.9 1.9 3.6-4"/></svg>',
   check:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>'
 };
@@ -1507,7 +1508,7 @@ function renderMemoPage(){
   $('#main').innerHTML=`<article class="mp">
     <nav class="mp-crumb" aria-label="Где лежит заметка">${rootIds().length>1?`<span>${esc(S.map[r].text||'')}</span><span>›</span>`:''}${chain.map(c=>`<button data-screen="${c}"><span class="dot" style="background:${projColor(c)}"></span>${esc(S.projects[c].name||'Без названия')}</button>`).join('<span>›</span>')}</nav>
     <div class="mp-head"><span class="mp-ic">${I.memo}</span><input class="mp-title" id="mpTitle" value="${esc(m.title||'')}" placeholder="Без названия" maxlength="140" aria-label="Название заметки">
-      <button class="icodel big" data-act="delmemo-page" aria-label="Удалить заметку" title="Удалить заметку">${I.trash}</button></div>
+      <button class="icodel big" data-act="memo-newtab" aria-label="Открыть в новой вкладке" title="Открыть в новой вкладке">${I.newtab||'↗'}</button><button class="icodel big" data-act="delmemo-page" aria-label="Удалить заметку" title="Удалить заметку">${I.trash}</button></div>
     <div class="mp-meta" id="mpMeta">${memoMeta(m)}</div>
     <div class="ed" id="ed" role="textbox" aria-multiline="true" aria-label="Текст заметки"></div>
     <div class="ed-tail" data-act="ed-tail" aria-hidden="true"></div>
@@ -1638,7 +1639,7 @@ document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.c
   document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up)});
 /* clicks inside the editor */
 document.addEventListener('click',e=>{if(!e.target.closest)return;const ed=e.target.closest('#ed,.ed-tail');if(!ed)return;
-  const chip=e.target.closest('.wl');if(chip){e.preventDefault();flushMemo();if(chip.dataset.memo){if(findMemo(chip.dataset.memo))openMemo(chip.dataset.memo);else toast('Заметка удалена')}
+  const chip=e.target.closest('.wl');if(chip){e.preventDefault();flushMemo();if((e.ctrlKey||e.metaKey)&&chip.dataset.memo&&findMemo(chip.dataset.memo)){openTab('m:'+chip.dataset.memo);return}if((e.ctrlKey||e.metaKey)&&chip.dataset.proj&&S.projects[chip.dataset.proj]){openTab(chip.dataset.proj);return}if(chip.dataset.memo){if(findMemo(chip.dataset.memo))openMemo(chip.dataset.memo);else toast('Заметка удалена')}
     else if(chip.dataset.proj){if(S.projects[chip.dataset.proj]){S.screen=chip.dataset.proj;render()}else toast('Проект удалён')}else if(chip.dataset.link)followLink(chip.dataset.link);return}
   const a=e.target.closest('a[href]');if(a&&(e.ctrlKey||e.metaKey||!a.closest('[contenteditable="true"]:focus'))){e.preventDefault();window.open(a.href,'_blank','noopener');return}
   const b=e.target.closest('button');
@@ -2387,10 +2388,11 @@ document.addEventListener('click',e=>{
   if(b.dataset.ptasks){const pid=b.dataset.ptasks,i=S.ptasks.indexOf(pid);if(i>=0)S.ptasks.splice(i,1);else S.ptasks.push(pid);cacheLocal();renderProjects();return}
   if(b.dataset.act==='tasks-show'){S.ptasks=Object.keys(S.projects);cacheLocal();renderProjects();return}
   if(b.dataset.act==='tasks-hide'){S.ptasks=[];cacheLocal();renderProjects();return}
+  if(b.dataset.act==='memo-newtab'){if(ED.id){flushMemo();openTab('m:'+ED.id)}return}
   if(b.dataset.act==='delmemo-page'){const f=findMemo(ED.id);if(!f)return;clearTimeout(ED.timer);ED.timer=0;const undo=deleteMemo(f.pid,f.m.id);S.screen=f.pid;render();toast('Заметка «'+(f.m.title||'Без названия')+'» удалена',()=>{undo();S.screen='m:'+f.m.id;render()});return}
   if(b.dataset.gonode){if(S.map[b.dataset.gonode])goNode(b.dataset.gonode);return}
   if(b.dataset.delmemo){const f=findMemo(b.dataset.delmemo);if(!f)return;if(S.screen==='m:'+f.m.id){S.screen=f.pid}const undo=deleteMemo(f.pid,f.m.id);rerenderProj();toast('Заметка «'+(f.m.title||'Без названия')+'» удалена',()=>{undo();rerenderProj()});return}
-  if(b.dataset.memo){openMemo(b.dataset.memo);return}
+  if(b.dataset.memo){if((e.ctrlKey||e.metaKey)&&findMemo(b.dataset.memo)){flushMemo();openTab('m:'+b.dataset.memo);return}openMemo(b.dataset.memo);return}
   if(b.dataset.delsubYes){const pid=b.dataset.delsubYes;const nm=S.projects[pid]?S.projects[pid].name:'';const undo=deleteProject(pid);S.confirmSub=null;renderChips();rerenderProj();toast('Проект «'+nm+'» удалён',()=>{undo();render()});return}
   if(b.dataset.delsubNo!==undefined){S.confirmSub=null;rerenderProj();return}
   if(b.dataset.delsub){S.confirmSub=b.dataset.delsub;rerenderProj();return}
@@ -2414,6 +2416,7 @@ document.addEventListener('click',e=>{
   if((b.dataset.screen||b.dataset.nav)&&b.closest('#side')){const scr=b.dataset.screen||'map',mv=b.dataset.nav||S.mapView;const nt=e.ctrlKey||e.metaKey;
     if(!PANE&&S.split&&focusPane===1){document.getElementById('app').classList.remove('navopen');sendPane({nav:{screen:scr,mapView:b.dataset.nav||null,newTab:nt}});return}
     if(nt){document.getElementById('app').classList.remove('navopen');openTab(scr,mv);return}}
+  if(b.dataset.screen&&(e.ctrlKey||e.metaKey)&&(S.projects[b.dataset.screen]||b.dataset.screen==='projects'||b.dataset.screen==='done')){openTab(b.dataset.screen);return}
   if(b.dataset.screen){document.getElementById('app').classList.remove('navopen');if(S.screen!==b.dataset.screen){S.screen=b.dataset.screen;S.confirmDel=false;render()}return}
   const a=b.dataset.act;
   if(a==='newproj'){const rt=(b&&b.dataset.root&&S.map[b.dataset.root])?b.dataset.root:'root';const pid=newProject('Новый проект');addChild(rt,'Новый проект',{project:pid});persist(pid);persist('map');S.screen=pid;render();const i=$('#projName');i.focus();i.select();return}
@@ -2458,8 +2461,10 @@ document.addEventListener('click',e=>{
 document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.closest('[data-hit]');if(h){e.preventDefault();goHit(h.dataset.hit)}});
 document.addEventListener('auxclick',e=>{if(e.button!==1)return;const b=e.target.closest&&e.target.closest('#side [data-screen],#side [data-nav]');if(!b)return;e.preventDefault();
   const scr=b.dataset.screen||'map',mv=b.dataset.nav||S.mapView;if(!PANE&&S.split&&focusPane===1)sendPane({nav:{screen:scr,mapView:b.dataset.nav||null,newTab:true}});else openTab(scr,mv)});
-document.addEventListener('mousedown',e=>{if(e.button===1&&e.target.closest&&e.target.closest('#side [data-screen],#side [data-nav]'))e.preventDefault()});
+document.addEventListener('mousedown',e=>{if(e.button===1&&e.target.closest&&e.target.closest('#side [data-screen],#side [data-nav],[data-memo],[data-screen]'))e.preventDefault()});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.tb-tab');if(!t||e.target.closest('.tb-x'))return;switchTab(t.dataset.tabid)});
+document.addEventListener('auxclick',e=>{if(e.button!==1||!e.target.closest)return;const mm=e.target.closest('[data-memo]:not(#side *)');if(mm&&findMemo(mm.dataset.memo)){e.preventDefault();flushMemo();openTab('m:'+mm.dataset.memo,null,false);return}
+  const ps=e.target.closest('[data-screen]:not(#side *)');if(ps&&S.projects[ps.dataset.screen]){e.preventDefault();openTab(ps.dataset.screen);return}});
 document.addEventListener('auxclick',e=>{if(e.button!==1)return;const t=e.target.closest&&e.target.closest('.tb-tab');if(t){e.preventDefault();closeTab(t.dataset.tabid)}});
 document.addEventListener('submit',e=>{const fm=e.target;
   if(fm.dataset&&(fm.dataset.addto||fm.dataset.subto)){e.preventDefault();const v=fm.querySelector('input').value.trim();if(!v)return;
