@@ -977,7 +977,7 @@ const UIK=LSK+'.ui'+(PANE?'.pane'+PANE:'');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
-function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch,scol:S.scol}))}
+function cacheLocal(){IX=null;lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch,scol:S.scol}))}
 function setSync(s){const el=$('#sync');if(!el)return;el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
   el.textContent=s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Синхронизация выключена: данные лежат только на этом устройстве.':''}
@@ -1162,33 +1162,41 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'&&!PANE){
 
 /* ---------- model ---------- */
 const newMap=()=>({root:{text:'Мои проекты',children:[]}});
-const sortedProjects=()=>Object.entries(S.projects).sort((a,b)=>(a[1].created||0)-(b[1].created||0));
-function parentOf(id){for(const k in S.map)if(S.map[k].children.includes(id))return k;return null}
+/* индекс структуры: строится один раз за проход и сбрасывается после него или при любой правке (persist, render, add…) */
+let IX=null;
+function ixDrop(){IX=null}
+function ix(){if(IX&&IX.map===S.map&&IX.projects===S.projects)return IX;const par=new Map(),nop=new Map(),txt=new Map();
+  for(const k in S.map){const n=S.map[k];if(!n)continue;for(const c of n.children)if(!par.has(c))par.set(c,k);if(n.project&&!nop.has(n.project))nop.set(n.project,k);const t=lc(n.text);if(t&&!txt.has(t))txt.set(t,k)}
+  IX={map:S.map,projects:S.projects,par,nop,txt,pp:new Map(),root:new Map(),arch:new Map(),sorted:null,kids:null};queueMicrotask(ixDrop);return IX}
+const sortedProjects=()=>{const I=ix();if(!I.sorted)I.sorted=Object.entries(S.projects).sort((a,b)=>(a[1].created||0)-(b[1].created||0));return I.sorted.slice()};
+function parentOf(id){const I=ix();const p=I.par.get(id);if(p!==undefined&&S.map[p]&&S.map[p].children.includes(id))return p;
+  if(p===undefined&&I.par.size&&isRootId(id))return null;for(const k in S.map)if(S.map[k].children.includes(id)){IX=null;return k}return null}
 /* корневые узлы: «Мои проекты» (root) и другие разделы — узлы с isRoot */
 function rootIds(){const m=S.map;if(!m)return['root'];return['root'].concat(Object.keys(m).filter(k=>k!=='root'&&m[k]&&m[k].isRoot).sort((a,b)=>(m[a].ord||0)-(m[b].ord||0)))}
 const isRootId=id=>id==='root'||!!(S.map&&S.map[id]&&S.map[id].isRoot);
 function rootOf(id){let c=id,g=0;while(c&&g++<300){if(isRootId(c))return c;const p=parentOf(c);if(!p)return'root';c=p}return'root'}
-function rootOfProject(pid){const k=nodeOfProject(pid);return k?rootOf(k):'root'}
-function addRoot(name){const k='r'+uid();const ord=Math.max(0,...rootIds().map(r=>S.map[r].ord||0))+1;S.map[k]={text:name||'Новый раздел',children:[],isRoot:true,ord};persist('map');return k}
+function rootOfProject(pid){const I=ix();if(I.root.has(pid))return I.root.get(pid);const k=nodeOfProject(pid);const r=k?rootOf(k):'root';I.root.set(pid,r);return r}
+function addRoot(name){IX=null;const k='r'+uid();const ord=Math.max(0,...rootIds().map(r=>S.map[r].ord||0))+1;S.map[k]={text:name||'Новый раздел',children:[],isRoot:true,ord};persist('map');return k}
 function rootHasProjects(r){return subtree(r).some(k=>S.map[k].project&&S.projects[S.map[k].project])}
 function deleteRoot(r){if(r==='root'||!S.map[r])return;if(rootHasProjects(r)){toast('Сначала перенесите или удалите проекты из «'+(S.map[r].text||'раздела')+'»');return}
   const snap=clone(S.map);for(const k of subtree(r))delete S.map[k];if(!S.map[S.sel])S.sel='root';persist('map');render();toast('Раздел удалён',()=>{S.map=snap;persist('map');render()})}
 function moveToRoot(pid,r){const k=nodeOfProject(pid);if(!k||!S.map[r])return;const par=parentOf(k);if(par===r)return;if(par)S.map[par].children=S.map[par].children.filter(c=>c!==k);S.map[k].side=pickSide(r);S.map[r].children.push(k);persist('map');render();toast('«'+(S.projects[pid].name||'Проект')+'» перенесён в «'+S.map[r].text+'»')}
 function pathOf(id){const out=[];let c=id,guard=0;while(c&&guard++<200){out.unshift(c);if(isRootId(c))break;c=parentOf(c)}return out}
 function projOf(id){let c=id,guard=0;while(c&&guard++<200){const n=S.map[c];if(n&&n.project&&S.projects[n.project])return n.project;if(isRootId(c))return null;c=parentOf(c)}return null}
-function nodeOfProject(pid){for(const k in S.map)if(S.map[k].project===pid)return k;return null}
+function nodeOfProject(pid){const I=ix();const k=I.nop.get(pid);if(k&&S.map[k]&&S.map[k].project===pid)return k;for(const x in S.map)if(S.map[x].project===pid){IX=null;return x}return null}
 function taskOf(n){if(!n||!n.taskId)return null;const p=S.projects[n.taskPid];return p?p.tasks.find(t=>t.id===n.taskId)||null:null}
 function subtree(id,acc=[]){acc.push(id);for(const c of S.map[id].children)if(S.map[c])subtree(c,acc);return acc}
 function pickSide(rt){const m=S.map;let r=0,l=0;for(const c of m[rt&&m[rt]?rt:'root'].children){if(!m[c])continue;const n=subtree(c).length;m[c].side==='left'?l+=n:r+=n}return l<r?'left':'right'}
-function nodeByText(t){const k=lc(t);if(!k)return null;for(const id in S.map)if(lc(S.map[id].text)===k)return id;return null}
-function parentProject(pid){const k=nodeOfProject(pid);if(!k)return null;const par=parentOf(k);return par?projOf(par):null}
-function childProjects(pid){return sortedProjects().filter(([id])=>parentProject(id)===pid)}
-function topProjects(r){return sortedProjects().filter(([id])=>!parentProject(id)&&(!r||rootOfProject(id)===r))}
+function nodeByText(t){const k=lc(t);if(!k)return null;const I=ix();const c=I.txt.get(k);if(c&&S.map[c]&&lc(S.map[c].text)===k)return c;for(const id in S.map)if(lc(S.map[id].text)===k)return id;return null}
+function parentProject(pid){const I=ix();if(I.pp.has(pid))return I.pp.get(pid);const k=nodeOfProject(pid);let r=null;if(k){const par=parentOf(k);r=par?projOf(par):null}I.pp.set(pid,r);return r}
+function projKids(){const I=ix();if(!I.kids){const m=new Map();for(const e of sortedProjects()){const pp=parentProject(e[0])||'';(m.get(pp)||m.set(pp,[]).get(pp)).push(e)}I.kids=m}return I.kids}
+function childProjects(pid){return (projKids().get(pid)||[]).slice()}
+function topProjects(r){return (projKids().get('')||[]).filter(([id])=>!r||rootOfProject(id)===r)}
 function projChain(pid){const out=[];let c=parentProject(pid),g=0;while(c&&g++<50){out.unshift(c);c=parentProject(c)}return out}
 function treeStats(pid){let t=0,d=0;const walk=id=>{const p=S.projects[id];t+=p.tasks.length;d+=p.tasks.filter(x=>x.status==='done').length;for(const [c] of childProjects(id))walk(c)};walk(pid);return{t,d,pct:t?Math.round(d/t*100):0}}
 function addSubproject(pid,name){const k=nodeOfProject(pid);const np=newProject(name||'Новый подпроект');addChild(k||'root',S.projects[np].name,{project:np});persist(np);persist('map');return np}
 /* архив: проект в архиве вместе со всеми подпроектами */
-function isArch(pid){const p=S.projects[pid];if(!p)return false;if(p.archived)return true;return projChain(pid).some(c=>S.projects[c]&&S.projects[c].archived)}
+function isArch(pid){const p=S.projects[pid];if(!p)return false;if(p.archived)return true;const I=ix();if(I.arch.has(pid))return I.arch.get(pid);const v=projChain(pid).some(c=>S.projects[c]&&S.projects[c].archived);I.arch.set(pid,v);return v}
 const showArch=()=>S.showArch!==false;
 const visProj=pid=>showArch()||!isArch(pid);
 function archNodes(){const out=new Set();const walk=(id,a,g)=>{const n=S.map[id];if(!n||g>300)return;const f=a||!!(n.project&&S.projects[n.project]&&S.projects[n.project].archived);if(f)out.add(id);for(const c of n.children)walk(c,f,g+1)};for(const r of rootIds())walk(r,false,0);return out}
@@ -1229,8 +1237,8 @@ const nodeObj=id=>S.map[id]||VN[id];
 function treeKids(id){const n=S.map[id];if(!n)return[];return n.children.filter(c=>S.map[c]&&(showArch()||!AR.has(c))).concat(VK[id]||[])}
 function openVirtual(id){const v=VN[id];if(!v)return false;if(v.taskId)openTask(v.taskId);else if(v.memoId)openMemo(v.memoId);return true}
 function stats(p){const t=p.tasks.length,d=p.tasks.filter(x=>x.status==='done').length;return{t,d,pct:t?Math.round(d/t*100):0}}
-function newProject(name){const id='p'+uid();S.projects[id]={name,color:sortedProjects().length%PCOL.length,created:Date.now(),tasks:[]};return id}
-function addChild(par,text,extra){const k='n'+uid();S.map[k]={text,children:[],...(extra||{})};if(isRootId(par)&&!S.map[k].side)S.map[k].side=pickSide(par);S.map[par].children.push(k);S.map[par].collapsed=false;return k}
+function newProject(name){IX=null;const id='p'+uid();S.projects[id]={name,color:sortedProjects().length%PCOL.length,created:Date.now(),tasks:[]};return id}
+function addChild(par,text,extra){IX=null;const k='n'+uid();S.map[k]={text,children:[],...(extra||{})};if(isRootId(par)&&!S.map[k].side)S.map[k].side=pickSide(par);S.map[par].children.push(k);S.map[par].collapsed=false;return k}
 function reconcile(){
   let ch=false;if(!S.map||!S.map.root){S.map=newMap();ch=true}
   for(const k in S.map){if(!Array.isArray(S.map[k].children)){S.map[k].children=[];ch=true}}
@@ -1301,7 +1309,7 @@ function renderSafe(){
   if(a&&TYPING.includes(a.id)){renderChips();if(S.screen==='map')redrawMap();else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else if(a.id!=='newTask'&&a.id!=='projName')renderListOnly();return}
   render();
 }
-function render(){renderChips();renderMain();cacheLocal()}
+function render(){IX=null;renderChips();renderMain();cacheLocal()}
 /* ---------- вкладки ---------- */
 function ensureTabs(){if(!Array.isArray(S.tabs)||!S.tabs.length){S.tabs=[{id:'t'+uid(),screen:S.screen,mapView:S.mapView}];S.tab=S.tabs[0].id}
   if(!S.tabs.some(t=>t.id===S.tab))S.tab=S.tabs[0].id;
@@ -1962,7 +1970,7 @@ function goNode(id){S.screen='map';S.sel=id;S.confirmDel=false;render();setTimeo
 
 /* ---------- deleting ---------- */
 // delete one project; its direct subprojects move up one level
-function deleteProject(pid){
+function deleteProject(pid){IX=null;
   const snapP=clone(S.projects[pid]),snapM=clone(S.map);const k=nodeOfProject(pid);
   delete S.projects[pid];
   if(k){const up=parentOf(k)||'root';
@@ -1975,7 +1983,7 @@ function deleteProject(pid){
   return ()=>{S.projects[pid]=snapP;S.map=snapM;persist(pid);persist('map')};
 }
 // delete a whole map branch, including every project inside it
-function deleteBranch(id){
+function deleteBranch(id){IX=null;
   const m=S.map,ids=subtree(id),par=parentOf(id);const pids=ids.map(k=>m[k].project).filter(p=>p&&S.projects[p]);
   const snapM=clone(m),snapP={},snapT={};for(const p of pids)snapP[p]=clone(S.projects[p]);
   for(const k of ids){const t=taskOf(m[k]);if(t&&!pids.includes(m[k].taskPid)){const tp=m[k].taskPid;if(!snapT[tp])snapT[tp]=clone(S.projects[tp]);delete t.nodeId}}
@@ -2115,7 +2123,7 @@ function treeFit(){const box=$('#mapbox');if(!box)return;const {w}=mapArea();con
 function treeCenter(id){const a=TG[id];if(!a||!$('#mapbox'))return;const {w,h}=mapArea();TVP.x=w/2-(a.x+a.w/2)*TVP.k;TVP.y=(h-70)/2-a.cy*TVP.k;applyTVP()}
 function keepVisible(id){const a=TG[id];if(!a||!$('#mapbox'))return;const {w,h}=mapArea();const sx=a.x*TVP.k+TVP.x,sx2=(a.x+a.w)*TVP.k+TVP.x,sy=a.y*TVP.k+TVP.y,sy2=(a.y+a.h)*TVP.k+TVP.y;
   if(sx<10||sx2>w-56||sy<50||sy2>h-80)treeCenter(id)}
-function treeZoom(f,cx,cy){const k=Math.min(2.5,Math.max(.2,TVP.k*f));const r=k/TVP.k;TVP.x=cx-(cx-TVP.x)*r;TVP.y=cy-(cy-TVP.y)*r;TVP.k=k;applyTVP()}
+function treeZoom(f,cx,cy){const k=Math.min(2.5,Math.max(.08,TVP.k*f));const r=k/TVP.k;TVP.x=cx-(cx-TVP.x)*r;TVP.y=cy-(cy-TVP.y)*r;TVP.k=k;applyTVP()}
 function bindTree(){
   const svg=$('#tsvg');const pts=new Map();let st=null,moved=false,pinch=null;
   svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;
@@ -2231,27 +2239,44 @@ function refreshGraph(){
      for(const r of rootIds()){const rt=next.get(r);if(rt)rt.r=Math.max(14*sz,mx*.8)}}
    if(OBS())for(const s of next.values())s.r=Math.max(3.2,s.r*.62)}
   SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'&&!(OBS()&&!S.gopt.ocolor)?next.get(e.b).color:null,arch:!!(next.get(e.b).arch)}));SIM.adj=adj;
-  if(GROUP()){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else{if(fresh){computeTargets();for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx*.75+(Math.random()-.5)*6;n.y=n.ty*.75+(Math.random()-.5)*6}}for(const n of SIM.list){n.tx=null;n.ty=null}}
+  if(GROUP()){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else{if(fresh){computeTargets();let mr=1;for(const n of SIM.list)if(n.tx!=null)mr=Math.max(mr,Math.hypot(n.tx,n.ty));const sc=Math.min(.75,(260+38*Math.sqrt(SIM.list.length))/mr);for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx*sc+(Math.random()-.5)*6;n.y=n.ty*sc+(Math.random()-.5)*6}}for(const n of SIM.list){n.tx=null;n.ty=null}}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
-  if(sig!==SIM.sig){SIM.sig=sig;if(fresh===SIM.list.length&&fresh){SIM.alpha=1;for(let i=0;i<320;i++)tick();SIM.alpha=.1;if(!GVP.init)graphFit()}else SIM.alpha=Math.max(SIM.alpha,.45)}
+  if(sig!==SIM.sig){SIM.sig=sig;if(fresh===SIM.list.length&&fresh){SIM.alpha=1;{const t0=performance.now();for(let i=0;i<320&&performance.now()-t0<700;i++)tick()}SIM.alpha=.1;if(!GVP.init)graphFit()}else SIM.alpha=Math.max(SIM.alpha,.45)}
   const c=$('#gcount');if(c){const nn=SIM.list.filter(n=>n.kind==='node').length,ne=SIM.edges.length;c.textContent=`${nn} ${plural(nn,'узел','узла','узлов')} · ${ne} ${plural(ne,'связь','связи','связей')}`}
   dirty=true;startLoop();
 }
 function tick(){
   const L=SIM.list,n=L.length,a=SIM.alpha;if(!n)return;const rep=900*S.gopt.repel,dist=70*S.gopt.dist,cen=.012*(S.gopt.center??1),gap=S.gopt.gap??14,nl=S.gopt.nolabel&&S.gopt.labels;
-  for(let i=0;i<n;i++){const p=L[i];for(let j=i+1;j<n;j++){const q=L[j];let dx=p.x-q.x,dy=p.y-q.y,d2=dx*dx+dy*dy;if(d2<1){dx=Math.random()-.5;dy=Math.random()-.5;d2=1}
-    if(d2>250000)continue;const f=rep*a/d2,d=Math.sqrt(d2),fx=dx/d*f,fy=dy/d*f;p.vx+=fx;p.vy+=fy;q.vx-=fx;q.vy-=fy}}
+  // отталкивание считается только между соседями по сетке 500×500 (дальше 500 px сила и так не действует)
+  const grid=(cs)=>{const g=new Map();for(let i=0;i<n;i++){const p=L[i];p._i=i;const gx=Math.floor(p.x/cs),gy=Math.floor(p.y/cs),k=gx*1000003+gy;let c=g.get(k);if(!c)g.set(k,c={gx,gy,a:[]});c.a.push(p)}return g};
+  const pairs=(g,cs,fn)=>{for(const c of g.values()){for(let ox=-1;ox<=1;ox++)for(let oy=-1;oy<=1;oy++){const c2=g.get((c.gx+ox)*1000003+c.gy+oy);if(!c2)continue;for(const p of c.a)for(const q of c2.a)if(q._i>p._i)fn(p,q)}}};
+  if(n<400){const g=grid(500);pairs(g,500,(p,q)=>{let dx=p.x-q.x,dy=p.y-q.y,d2=dx*dx+dy*dy;if(d2<1){dx=Math.random()-.5;dy=Math.random()-.5;d2=1}
+    if(d2>250000)return;const f=rep*a/d2,d=Math.sqrt(d2),fx=dx/d*f,fy=dy/d*f;p.vx+=fx;p.vy+=fy;q.vx-=fx;q.vy-=fy})}
+  else{ // большой граф: дерево Барнса — Хата, O(n log n)
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of L){if(p.x<x0)x0=p.x;if(p.y<y0)y0=p.y;if(p.x>x1)x1=p.x;if(p.y>y1)y1=p.y}
+    const size=Math.max(x1-x0,y1-y0)+1;const mk=(x,y,s)=>({x,y,s,m:0,cx:0,cy:0,p:null,k:null});const root=mk(x0,y0,size);
+    const ins=(nd,p,dep)=>{if(!nd.m&&!nd.k){nd.p=p;nd.m=1;nd.cx=p.x;nd.cy=p.y;return}
+      if(!nd.k){if(dep>40){nd.m++;return}nd.k=[null,null,null,null];const o=nd.p;nd.p=null;nd.m=0;nd.cx=0;nd.cy=0;place(nd,o,dep)}
+      place(nd,p,dep)};
+    const place=(nd,p,dep)=>{nd.cx=(nd.cx*nd.m+p.x)/(nd.m+1);nd.cy=(nd.cy*nd.m+p.y)/(nd.m+1);nd.m++;const h=nd.s/2;const i=(p.x>=nd.x+h?1:0)+(p.y>=nd.y+h?2:0);
+      if(!nd.k[i])nd.k[i]=mk(nd.x+(i&1?h:0),nd.y+(i&2?h:0),h);ins(nd.k[i],p,dep+1)};
+    for(const p of L)ins(root,p,0);
+    const th2=.81;const force=(nd,p)=>{if(!nd||!nd.m)return;if(nd.p===p&&!nd.k)return;let dx=p.x-nd.cx,dy=p.y-nd.cy,d2=dx*dx+dy*dy;
+      if(!nd.k||nd.s*nd.s<th2*d2){if(d2>250000+nd.s*nd.s)return;if(d2<1){dx=Math.random()-.5;dy=Math.random()-.5;d2=1}const f=rep*a*nd.m/d2,d=Math.sqrt(d2);p.vx+=dx/d*f;p.vy+=dy/d*f;return}
+      for(const c of nd.k)force(c,p)};
+    for(const p of L)force(root,p)}
   const grp=GROUP(),gk=.07*(S.gopt.gstr??1)*a;
   for(const e of SIM.edges){const s=e.s,t=e.t,dx=t.x-s.x,dy=t.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
     if(grp&&e.kind==='tree')continue;                       // in grouped mode tree edges follow the radial layout
     const k=(d-(e.kind==='link'?dist*1.3:dist))/d*(e.kind==='link'?(grp?.012:.05):.09)*a;t.vx-=dx*k;t.vy-=dy*k;s.vx+=dx*k;s.vy+=dy*k}
   for(const p of L){if(grp&&p.tx!=null){p.vx+=(p.tx-p.x)*gk;p.vy+=(p.ty-p.y)*gk}else{p.vx-=p.x*cen*a;p.vy-=p.y*cen*a}if(p.fx!=null){p.x=p.fx;p.y=p.fy;p.vx=p.vy=0;continue}p.vx*=.58;p.vy*=.58;p.x+=p.vx;p.y+=p.vy}
   // collision: keep a gap between nodes (and their labels) so nothing overlaps
-  for(let i=0;i<n;i++){const p=L[i];const pw=nl?Math.max(p.r,p.lw/2):p.r,ph=nl?p.r+16*(S.gopt.text||1):p.r;
-    for(let j=i+1;j<n;j++){const q=L[j];const qw=nl?Math.max(q.r,q.lw/2):q.r,qh=nl?q.r+16*(S.gopt.text||1):q.r;
+  SIM.tc=(SIM.tc||0)+1;if(n<400||SIM.tc%2===0){let mw=0;const th=16*(S.gopt.text||1);for(const p of L){p._w=nl?Math.max(p.r,p.lw/2):p.r;p._h=nl?p.r+th:p.r;if(p._w>mw)mw=p._w;if(p._h>mw)mw=p._h}
+   const cs=Math.max(64,2*mw+gap+8);const g=grid(cs);
+   pairs(g,cs,(p,q)=>{const pw=p._w,ph=p._h,qw=q._w,qh=q._h;
       const dx=q.x-p.x,dy=q.y-p.y;const ox=pw+qw+gap-Math.abs(dx),oy=(ph+qh)/1.2+gap*.6-Math.abs(dy);
-      if(ox>0&&oy>0){const fp=p.fx!=null,fq=q.fx!=null;if(fp&&fq)continue;const wp=fp?0:fq?1:.5,wq=1-wp;
-        if(ox/(pw+qw+gap)<oy/((ph+qh)/1.2+gap*.6)){const m=(dx>=0?1:-1)*ox*.5;p.x-=m*wp;q.x+=m*wq}else{const m=(dy>=0?1:-1)*oy*.5;p.y-=m*wp;q.y+=m*wq}}}}
+      if(ox>0&&oy>0){const fp=p.fx!=null,fq=q.fx!=null;if(fp&&fq)return;const wp=fp?0:fq?1:.5,wq=1-wp;
+        if(ox/(pw+qw+gap)<oy/((ph+qh)/1.2+gap*.6)){const m=(dx>=0?1:-1)*ox*.5;p.x-=m*wp;q.x+=m*wq}else{const m=(dy>=0?1:-1)*oy*.5;p.y-=m*wp;q.y+=m*wq}}})}
   SIM.alpha*=OBS()?.992:.986;if(SIM.alpha<.004)SIM.alpha=0;
 }
 function startLoop(){if(!raf&&cv)raf=requestAnimationFrame(loop)}
@@ -2293,10 +2318,10 @@ function draw(){
     let t=n.label;if(t.length>34)t=t.slice(0,33)+'…';ctx.fillText(t,n.x,n.y+n.r+3)}
   ctx.globalAlpha=1;
 }
-function graphZoom(f,cx,cy){GVP.auto=false;const v=GVP,k=Math.min(4,Math.max(.15,v.k*f)),r=k/v.k;v.x=cx-(cx-v.x)*r;v.y=cy-(cy-v.y)*r;v.k=k;dirty=true;startLoop()}
+function graphZoom(f,cx,cy){GVP.auto=false;const v=GVP,k=Math.min(4,Math.max(.03,v.k*f)),r=k/v.k;v.x=cx-(cx-v.x)*r;v.y=cy-(cy-v.y)*r;v.k=k;dirty=true;startLoop()}
 function graphFit(){if(!cv||!SIM.list.length)return;const {w,h}=mapArea();let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
   for(const n of SIM.list){const hw=Math.max(n.r,S.gopt.labels?(n.lw||0)/(w<520?5:2):0);x0=Math.min(x0,n.x-hw);y0=Math.min(y0,n.y-n.r);x1=Math.max(x1,n.x+hw);y1=Math.max(y1,n.y+n.r+18)}
-  const pad=30,top=50,bot=$('#npanel')&&$('#npanel').offsetWidth>=w-2?10:70;const k=Math.min(1.6,Math.max(.2,Math.min((w-pad*2)/(x1-x0||1),(h-pad*2-top-bot)/(y1-y0||1))));GVP.k=k;GVP.x=w/2-(x0+x1)/2*k;GVP.y=top+(h-top-bot)/2-(y0+y1)/2*k;GVP.init=true;GVP.auto=true;dirty=true;startLoop()}
+  const pad=30,top=50,bot=$('#npanel')&&$('#npanel').offsetWidth>=w-2?10:70;const k=Math.min(1.6,Math.max(.03,Math.min((w-pad*2)/(x1-x0||1),(h-pad*2-top-bot)/(y1-y0||1))));GVP.k=k;GVP.x=w/2-(x0+x1)/2*k;GVP.y=top+(h-top-bot)/2-(y0+y1)/2*k;GVP.init=true;GVP.auto=true;dirty=true;startLoop()}
 function graphCenter(id){const n=SIM.nodes.get(id);if(!n||!cv)return;const {w,h}=mapArea();if(GVP.k<.8)GVP.k=1;GVP.x=w/2-n.x*GVP.k;GVP.y=h/2-n.y*GVP.k;dirty=true;startLoop()}
 function centerOn(id){if(S.mapView==='tree')treeCenter(id);else graphCenter(id)}
 function gpt(e){const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
