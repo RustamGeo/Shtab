@@ -527,7 +527,11 @@ a.skinbtn{text-decoration:none}
 .sn-add{border:0;background:transparent;color:var(--muted);width:26px;height:26px;border-radius:var(--rs);display:grid;place-items:center;padding:0}
 .sn-add:hover{background:var(--sunk);color:var(--accent)}
 .gset .gstyle{flex:none;align-self:flex-start}.gset .gstyle button{padding:5px 12px;height:auto;font-size:12.5px}
-.sn-root{gap:2px;margin-top:8px}.sn-root:first-child{margin-top:0}
+.sn-root{gap:2px;margin-top:8px}
+.sn-chev{flex:none;width:20px;height:22px;margin-left:-8px;border:0;background:transparent;color:var(--muted);border-radius:5px;display:grid;place-items:center;padding:0}
+.sn-chev:hover{background:var(--sunk);color:var(--ink)}.sn-chev svg{width:12px;height:12px;transition:transform .15s}
+.sn-chev[aria-expanded="true"] svg{transform:rotate(90deg)}
+.sn-rc{font-style:normal;font-size:11px;color:var(--muted);letter-spacing:0;padding-right:4px}.sn-root:first-child{margin-top:0}
 .sn-rname{flex:1;min-width:0;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;letter-spacing:inherit;text-transform:uppercase;padding:3px 4px;margin-left:-5px;border-radius:5px;text-overflow:ellipsis}
 .sn-rname:hover{border-color:var(--line)}.sn-rname:focus{outline:none;border-color:var(--accent);color:var(--ink);text-transform:none;letter-spacing:0;background:var(--bg)}
 .sn-delroot{opacity:0}.sn-root:hover .sn-delroot,.sn-delroot:focus-visible{opacity:1}@media (hover:none){.sn-delroot{opacity:.7}}
@@ -896,7 +900,7 @@ const UIK=LSK+'.ui'+(PANE?'.pane'+PANE:'');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
-function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch}))}
+function cacheLocal(){lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch,scol:S.scol}))}
 function setSync(s){const el=$('#sync');if(!el)return;el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
   el.textContent=s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Синхронизация выключена: данные лежат только на этом устройстве.':''}
@@ -1295,9 +1299,9 @@ function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
       ${item('data-nav="tree"',I.tree,'Дерево',null,isMap&&S.mapView==='tree')}
       ${item('data-nav="graph"',I.graph,'Граф',null,isMap&&S.mapView==='graph')}
     </div>
-    <div class="sn-list">${rootIds().map(r=>`<div class="sn-h sn-root"><input class="sn-rname" id="rn-${r}" data-rename-root="${r}" value="${esc(S.map[r].text||'')}" maxlength="60" aria-label="Название корневого узла" title="Нажмите, чтобы переименовать" autocomplete="off" spellcheck="false">
-      <button class="sn-add" data-act="newproj" data-root="${r}" aria-label="Новый проект в «${esc(S.map[r].text)}»" title="Новый проект">${I.plus}</button>${r==='root'?'':`<button class="sn-add sn-delroot" data-delroot="${r}" aria-label="Удалить корневой узел «${esc(S.map[r].text)}»" title="Удалить корневой узел">${I.trash}</button>`}</div>
-      ${topProjects(r).filter(([pid])=>visProj(pid)).map(([pid])=>tree(pid,0)).join('')||'<div class="hint sn-empty">Проектов пока нет</div>'}`).join('')}
+    <div class="sn-list">${rootIds().map(r=>{const sc=(S.scol||[]).includes(r);const tp=topProjects(r).filter(([pid])=>visProj(pid));return `<div class="sn-h sn-root${sc?' closed':''}"><button class="sn-chev" data-scol="${r}" aria-expanded="${!sc}" aria-label="${sc?'Развернуть':'Свернуть'} «${esc(S.map[r].text)}»" title="${sc?'Развернуть':'Свернуть'}">${I.chev}</button><input class="sn-rname" id="rn-${r}" data-rename-root="${r}" value="${esc(S.map[r].text||'')}" maxlength="60" aria-label="Название корневого узла" title="Нажмите, чтобы переименовать" autocomplete="off" spellcheck="false">
+      <button class="sn-add" data-act="newproj" data-root="${r}" aria-label="Новый проект в «${esc(S.map[r].text)}»" title="Новый проект">${I.plus}</button>${r==='root'?'':`<button class="sn-add sn-delroot" data-delroot="${r}" aria-label="Удалить корневой узел «${esc(S.map[r].text)}»" title="Удалить корневой узел">${I.trash}</button>`}${sc&&tp.length?`<em class="num sn-rc">${tp.length}</em>`:''}</div>
+      ${sc?'':(tp.map(([pid])=>tree(pid,0)).join('')||'<div class="hint sn-empty">Проектов пока нет</div>')}`}).join('')}
       <button class="sn-newroot" data-act="newroot">${I.plus} Корневой узел</button></div>`;
   const t=$('#mbarTitle');if(t)t.textContent=S.screen==='done'?'Выполненные':S.screen==='projects'?'Проекты':isMap?(S.mapView==='graph'?'Граф':'Дерево'):(S.projects[S.screen]?S.projects[S.screen].name:'');
 }
@@ -2149,7 +2153,7 @@ function doRestore(){
 document.addEventListener('click',e=>{
   if(e.target.closest('input,select,textarea'))return;
   const b=e.target.closest('button,[data-task],[data-screen],[data-memo]');if(!b)return;
-  if(b.closest('#side')&&b.dataset.act!=='opennav'&&!b.dataset.colorfor)document.getElementById('app').classList.remove('navopen');
+  if(b.closest('#side')&&b.dataset.act!=='opennav'&&!b.dataset.colorfor&&!b.dataset.scol)document.getElementById('app').classList.remove('navopen');
   if(b.dataset.act==='opennav'){document.getElementById('app').classList.add('navopen');return}
   if(b.dataset.act==='closenav'){document.getElementById('app').classList.remove('navopen');return}
   if(b.dataset.act==='gobackup'){document.getElementById('app').classList.remove('navopen');if(S.screen!=='projects'){S.screen='projects';render()}setTimeout(()=>{const el=document.querySelector('.backup');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},30);return}
@@ -2180,6 +2184,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.gstyle){S.gopt.style=b.dataset.gstyle;cacheLocal();refreshGraph();renderLegend();SIM.alpha=.9;GVP.auto=true;startLoop();const gs=$('#gset');if(gs){gs.remove();$('#mapbox').insertAdjacentHTML('beforeend',setPanel());bindSet()}return}
   if(b.dataset.act==='newroot'){document.getElementById('app').classList.remove('navopen');const k=addRoot('Новый раздел');TVP.init=false;GVP.auto=true;render();
     const i=document.getElementById('rn-'+k);if(i){document.getElementById('app').classList.add('navopen');i.focus();i.select()}return}
+  if(b.dataset.scol){const r=b.dataset.scol;S.scol=S.scol||[];const i=S.scol.indexOf(r);if(i<0)S.scol.push(r);else S.scol.splice(i,1);cacheLocal();renderChips();return}
   if(b.dataset.delroot){deleteRoot(b.dataset.delroot);return}
   if(b.dataset.arch){e.stopPropagation();const pid=b.dataset.arch;setArch(pid,!S.projects[pid].archived);return}
   if(b.dataset.act==='showarch'){S.showArch=!showArch();cacheLocal();GVP.auto=true;TVP.init=false;render();if(S.screen==='map'&&S.mapView==='tree')treeFit();return}
@@ -2276,7 +2281,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- boot ---------- */
 try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.parse(lsGet(LSK+'.map')||'null');if(mp&&mp.root)S.map=mp;
   const ui=JSON.parse(lsGet(UIK)||'{}');if(Array.isArray(ui.tabs)&&ui.tabs.length){S.tabs=ui.tabs;S.tab=ui.tab}if(ui.split&&!PANE)S.split=ui.split;
-  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.showArch===false)S.showArch=false;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
+  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.showArch===false)S.showArch=false;if(Array.isArray(ui.scol))S.scol=ui.scol;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||S.projects[ui.screen]))S.screen=ui.screen}catch(e){S.projects={}}
 if(!S.map)S.map=newMap();
 if(!S.skin)S.skin='night';
 if(S.skin&&S.skin!=='shtab'){document.documentElement.dataset.skin=S.skin;loadFonts([SKINS.find(x=>x.id===S.skin)||SKINS[0]]);updFonts();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
