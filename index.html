@@ -526,6 +526,22 @@ a.skinbtn{text-decoration:none}
 .sn-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .sn-add{border:0;background:transparent;color:var(--muted);width:26px;height:26px;border-radius:var(--rs);display:grid;place-items:center;padding:0}
 .sn-add:hover{background:var(--sunk);color:var(--accent)}
+.sn-root{gap:2px;margin-top:8px}.sn-root:first-child{margin-top:0}
+.sn-rname{flex:1;min-width:0;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;letter-spacing:inherit;text-transform:uppercase;padding:3px 4px;margin-left:-5px;border-radius:5px;text-overflow:ellipsis}
+.sn-rname:hover{border-color:var(--line)}.sn-rname:focus{outline:none;border-color:var(--accent);color:var(--ink);text-transform:none;letter-spacing:0;background:var(--bg)}
+.sn-delroot{opacity:0}.sn-root:hover .sn-delroot,.sn-delroot:focus-visible{opacity:1}@media (hover:none){.sn-delroot{opacity:.7}}
+.sn-delroot svg{width:13px;height:13px}
+.sn-empty{padding:4px 10px 6px;font-size:12px}
+.sn-newroot{display:flex;align-items:center;gap:8px;margin:10px 4px 4px;padding:7px 10px;border:1px dashed var(--line);border-radius:var(--rs);background:transparent;color:var(--muted);font-size:12.5px}
+.sn-newroot:hover{color:var(--ink);border-color:var(--muted)}.sn-newroot svg{width:13px;height:13px}
+.nl-rh{display:flex;align-items:center;gap:10px;padding:14px 14px 8px;border-bottom:1px solid var(--line);background:var(--bg)}
+.nl-rh:not(:first-child){border-top:1px solid var(--line);margin-top:0}
+.nl-rh .t{font-family:var(--f-display);font-weight:var(--dw);font-size:14px;letter-spacing:.02em;text-transform:uppercase}
+.nl-rh .num{font-size:12px;color:var(--muted)}.nl-rh .ghost{margin-left:auto;font-size:12.5px;padding:4px 8px}
+.nl-rempty{padding:12px 16px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--line)}
+.pacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.proot{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--rs);padding:0 4px 0 9px;color:var(--muted);background:var(--surface)}
+.proot select{border:0;background:transparent;color:var(--ink);font:inherit;font-size:13px;padding:7px 4px}
 .sn-list{display:flex;flex-direction:column;gap:1px;overflow-y:auto;min-height:0;flex:1}
 .sn-proj{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;color:var(--ink);text-align:left;font-size:14px;padding:6px 10px 6px calc(10px + var(--d,0) * 16px);border-radius:var(--rs);cursor:pointer}
 .sn-proj .dot{width:9px;height:9px;border-radius:50%;flex:none}
@@ -1066,16 +1082,26 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'&&!PANE){
 const newMap=()=>({root:{text:'Мои проекты',children:[]}});
 const sortedProjects=()=>Object.entries(S.projects).sort((a,b)=>(a[1].created||0)-(b[1].created||0));
 function parentOf(id){for(const k in S.map)if(S.map[k].children.includes(id))return k;return null}
-function pathOf(id){const out=[];let c=id,guard=0;while(c&&guard++<200){out.unshift(c);if(c==='root')break;c=parentOf(c)}return out}
-function projOf(id){let c=id,guard=0;while(c&&guard++<200){const n=S.map[c];if(n&&n.project&&S.projects[n.project])return n.project;if(c==='root')return null;c=parentOf(c)}return null}
+/* корневые узлы: «Мои проекты» (root) и другие разделы — узлы с isRoot */
+function rootIds(){const m=S.map;if(!m)return['root'];return['root'].concat(Object.keys(m).filter(k=>k!=='root'&&m[k]&&m[k].isRoot).sort((a,b)=>(m[a].ord||0)-(m[b].ord||0)))}
+const isRootId=id=>id==='root'||!!(S.map&&S.map[id]&&S.map[id].isRoot);
+function rootOf(id){let c=id,g=0;while(c&&g++<300){if(isRootId(c))return c;const p=parentOf(c);if(!p)return'root';c=p}return'root'}
+function rootOfProject(pid){const k=nodeOfProject(pid);return k?rootOf(k):'root'}
+function addRoot(name){const k='r'+uid();const ord=Math.max(0,...rootIds().map(r=>S.map[r].ord||0))+1;S.map[k]={text:name||'Новый раздел',children:[],isRoot:true,ord};persist('map');return k}
+function rootHasProjects(r){return subtree(r).some(k=>S.map[k].project&&S.projects[S.map[k].project])}
+function deleteRoot(r){if(r==='root'||!S.map[r])return;if(rootHasProjects(r)){toast('Сначала перенесите или удалите проекты из «'+(S.map[r].text||'раздела')+'»');return}
+  const snap=clone(S.map);for(const k of subtree(r))delete S.map[k];if(!S.map[S.sel])S.sel='root';persist('map');render();toast('Раздел удалён',()=>{S.map=snap;persist('map');render()})}
+function moveToRoot(pid,r){const k=nodeOfProject(pid);if(!k||!S.map[r])return;const par=parentOf(k);if(par===r)return;if(par)S.map[par].children=S.map[par].children.filter(c=>c!==k);S.map[k].side=pickSide(r);S.map[r].children.push(k);persist('map');render();toast('«'+(S.projects[pid].name||'Проект')+'» перенесён в «'+S.map[r].text+'»')}
+function pathOf(id){const out=[];let c=id,guard=0;while(c&&guard++<200){out.unshift(c);if(isRootId(c))break;c=parentOf(c)}return out}
+function projOf(id){let c=id,guard=0;while(c&&guard++<200){const n=S.map[c];if(n&&n.project&&S.projects[n.project])return n.project;if(isRootId(c))return null;c=parentOf(c)}return null}
 function nodeOfProject(pid){for(const k in S.map)if(S.map[k].project===pid)return k;return null}
 function taskOf(n){if(!n||!n.taskId)return null;const p=S.projects[n.taskPid];return p?p.tasks.find(t=>t.id===n.taskId)||null:null}
 function subtree(id,acc=[]){acc.push(id);for(const c of S.map[id].children)if(S.map[c])subtree(c,acc);return acc}
-function pickSide(){const m=S.map;let r=0,l=0;for(const c of m.root.children){if(!m[c])continue;const n=subtree(c).length;m[c].side==='left'?l+=n:r+=n}return l<r?'left':'right'}
+function pickSide(rt){const m=S.map;let r=0,l=0;for(const c of m[rt&&m[rt]?rt:'root'].children){if(!m[c])continue;const n=subtree(c).length;m[c].side==='left'?l+=n:r+=n}return l<r?'left':'right'}
 function nodeByText(t){const k=lc(t);if(!k)return null;for(const id in S.map)if(lc(S.map[id].text)===k)return id;return null}
 function parentProject(pid){const k=nodeOfProject(pid);if(!k)return null;const par=parentOf(k);return par?projOf(par):null}
 function childProjects(pid){return sortedProjects().filter(([id])=>parentProject(id)===pid)}
-function topProjects(){return sortedProjects().filter(([id])=>!parentProject(id))}
+function topProjects(r){return sortedProjects().filter(([id])=>!parentProject(id)&&(!r||rootOfProject(id)===r))}
 function projChain(pid){const out=[];let c=parentProject(pid),g=0;while(c&&g++<50){out.unshift(c);c=parentProject(c)}return out}
 function treeStats(pid){let t=0,d=0;const walk=id=>{const p=S.projects[id];t+=p.tasks.length;d+=p.tasks.filter(x=>x.status==='done').length;for(const [c] of childProjects(id))walk(c)};walk(pid);return{t,d,pct:t?Math.round(d/t*100):0}}
 function addSubproject(pid,name){const k=nodeOfProject(pid);const np=newProject(name||'Новый подпроект');addChild(k||'root',S.projects[np].name,{project:np});persist(np);persist('map');return np}
@@ -1083,7 +1109,7 @@ function addSubproject(pid,name){const k=nodeOfProject(pid);const np=newProject(
 function isArch(pid){const p=S.projects[pid];if(!p)return false;if(p.archived)return true;return projChain(pid).some(c=>S.projects[c]&&S.projects[c].archived)}
 const showArch=()=>S.showArch!==false;
 const visProj=pid=>showArch()||!isArch(pid);
-function archNodes(){const out=new Set();const walk=(id,a,g)=>{const n=S.map[id];if(!n||g>300)return;const f=a||!!(n.project&&S.projects[n.project]&&S.projects[n.project].archived);if(f)out.add(id);for(const c of n.children)walk(c,f,g+1)};walk('root',false,0);return out}
+function archNodes(){const out=new Set();const walk=(id,a,g)=>{const n=S.map[id];if(!n||g>300)return;const f=a||!!(n.project&&S.projects[n.project]&&S.projects[n.project].archived);if(f)out.add(id);for(const c of n.children)walk(c,f,g+1)};for(const r of rootIds())walk(r,false,0);return out}
 let AR=new Set();
 function setArch(pid,v){const p=S.projects[pid];if(!p)return;if(v)p.archived=true;else delete p.archived;persist(pid);toast(v?`«${p.name||'Проект'}» — в архиве`:`«${p.name||'Проект'}» вернулся из архива`);render()}
 function archBtn(pid,big){const own=!!S.projects[pid].archived,inh=!own&&isArch(pid);
@@ -1122,7 +1148,7 @@ function treeKids(id){const n=S.map[id];if(!n)return[];return n.children.filter(
 function openVirtual(id){const v=VN[id];if(!v)return false;if(v.taskId)openTask(v.taskId);else if(v.memoId)openMemo(v.memoId);return true}
 function stats(p){const t=p.tasks.length,d=p.tasks.filter(x=>x.status==='done').length;return{t,d,pct:t?Math.round(d/t*100):0}}
 function newProject(name){const id='p'+uid();S.projects[id]={name,color:sortedProjects().length%PCOL.length,created:Date.now(),tasks:[]};return id}
-function addChild(par,text,extra){const k='n'+uid();S.map[k]={text,children:[],...(extra||{})};if(par==='root'&&!S.map[k].side)S.map[k].side=pickSide();S.map[par].children.push(k);S.map[par].collapsed=false;return k}
+function addChild(par,text,extra){const k='n'+uid();S.map[k]={text,children:[],...(extra||{})};if(isRootId(par)&&!S.map[k].side)S.map[k].side=pickSide(par);S.map[par].children.push(k);S.map[par].collapsed=false;return k}
 function reconcile(){
   let ch=false;if(!S.map||!S.map.root){S.map=newMap();ch=true}
   for(const k in S.map){if(!Array.isArray(S.map[k].children)){S.map[k].children=[];ch=true}}
@@ -1255,6 +1281,7 @@ window.addEventListener('storage',e=>{
   try{if(e.key===LSK)S.projects=JSON.parse(e.newValue||'{}')||{};else{const m=JSON.parse(e.newValue||'null');if(m&&m.root)S.map=m}}catch(x){return}
   if(!S.map[S.sel])S.sel='root';if(S.screen!=='map'&&S.screen!=='projects'&&S.screen!=='done'&&!S.projects[S.screen])S.screen='projects';renderSafe()});
 function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
+  {const ae=document.activeElement;if(ae&&ae.classList&&ae.classList.contains('sn-rname')&&$('#chips').contains(ae))return}
   const today=todayStr();let open=0;for(const pid in S.projects)if(!isArch(pid))for(const t of S.projects[pid].tasks)if(t.status!=='done')open++;
   const isMap=S.screen==='map';const curTop=S.projects[S.screen]?S.screen:null;
   const item=(attrs,ic,label,n,cur)=>`<button class="sn-item" ${attrs} aria-current="${cur?'page':'false'}">${ic}<span>${label}</span>${n!=null?`<em class="num">${n}</em>`:''}</button>`;
@@ -1267,8 +1294,10 @@ function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
       ${item('data-nav="tree"',I.tree,'Дерево',null,isMap&&S.mapView==='tree')}
       ${item('data-nav="graph"',I.graph,'Граф',null,isMap&&S.mapView==='graph')}
     </div>
-    <div class="sn-h"><span>Мои проекты</span><button class="sn-add" data-act="newproj" aria-label="Новый проект" title="Новый проект">${I.plus}</button></div>
-    <div class="sn-list">${topProjects().filter(([pid])=>visProj(pid)).map(([pid])=>tree(pid,0)).join('')||'<div class="hint" style="padding:6px 10px">Проектов пока нет</div>'}</div>`;
+    <div class="sn-list">${rootIds().map(r=>`<div class="sn-h sn-root"><input class="sn-rname" id="rn-${r}" data-rename-root="${r}" value="${esc(S.map[r].text||'')}" maxlength="60" aria-label="Название корневого узла" title="Нажмите, чтобы переименовать" autocomplete="off" spellcheck="false">
+      <button class="sn-add" data-act="newproj" data-root="${r}" aria-label="Новый проект в «${esc(S.map[r].text)}»" title="Новый проект">${I.plus}</button>${r==='root'?'':`<button class="sn-add sn-delroot" data-delroot="${r}" aria-label="Удалить корневой узел «${esc(S.map[r].text)}»" title="Удалить корневой узел">${I.trash}</button>`}</div>
+      ${topProjects(r).filter(([pid])=>visProj(pid)).map(([pid])=>tree(pid,0)).join('')||'<div class="hint sn-empty">Проектов пока нет</div>'}`).join('')}
+      <button class="sn-newroot" data-act="newroot">${I.plus} Корневой узел</button></div>`;
   const t=$('#mbarTitle');if(t)t.textContent=S.screen==='done'?'Выполненные':S.screen==='projects'?'Проекты':isMap?(S.mapView==='graph'?'Граф':'Дерево'):(S.projects[S.screen]?S.projects[S.screen].name:'');
 }
 function renderMain(){syncTab();renderTabs();stopGraph();$('#main').style.removeProperty('--pc');if(S.screen==='map')renderMapScreen();else if(S.screen==='projects')renderProjects();else if(S.screen==='done')renderDone();else renderProject()}
@@ -1338,10 +1367,13 @@ function nlSubs(pid,depth,f,today){
       <span class="nl-name" style="padding-left:${16+depth*22}px"><span class="nl-tie" aria-hidden="true"></span><span class="dot" style="background:${projColor(c)}"></span><span class="t">${esc(cp.name||'Без названия')}</span>${(cp.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${cp.memos.length}</span>`:''}</span>
       ${nlCells(cp,st,today,true)}
       <span class="nl-x">${archBtn(c)}<button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlItems(c,16+depth*22+22,f,today)+nlSubs(c,depth+1,f,today)}).join('')}
+function rootSecs(mk,opt){const rs=rootIds();if(rs.length<2)return mk(topProjects());
+  return rs.map(r=>{const g=mk(topProjects(r));if(!g&&opt.hideEmpty)return'';const n=topProjects(r).filter(([pid])=>visProj(pid)).length;
+    return `<div class="nl-rh"><span class="t">${esc(S.map[r].text||'Без названия')}</span><span class="num">${n} ${plural(n,'проект','проекта','проектов')}</span>${opt.add?`<button class="ghost" data-act="newproj" data-root="${r}">${I.plus} Проект</button>`:''}</div>`+(g||`<div class="nl-rempty">${opt.empty||'Пусто'}</div>`)}).join('')}
 function renderProjects(){
   const list=sortedProjects();const today=todayStr();let f=S.pfilter||'all';if(!NF.some(x=>x[0]===f))f='all';
   let open=0,late=0,narch=0;for(const [id,p] of list){if(isArch(id)){narch++;continue}for(const t of p.tasks)if(t.status!=='done'){open++;if(t.due&&t.due<today)late++}}
-  const groups=topProjects().filter(([pid])=>visProj(pid)&&treeMatch(pid,f,today)).map(([pid,p])=>{
+  const mkG=arr=>arr.filter(([pid])=>visProj(pid)&&treeMatch(pid,f,today)).map(([pid,p])=>{
     const st=pStatus(p,today,pid);const nsub=childProjects(pid).length;const collapsed=S.pcol.includes(pid)&&f==='all';
     return `<div class="nl-group${isArch(pid)?' arch':''}">
       <div class="nl-row nl-g" data-screen="${pid}" role="button" tabindex="0">
@@ -1351,6 +1383,7 @@ function renderProjects(){
       </div>${nlAsk(pid,nsub)}
       ${collapsed?'':nlItems(pid,16,f,today)+nlSubs(pid,0,f,today)+(f==='all'?`<form class="nl-add" data-subto="${pid}"><span class="nl-tie" aria-hidden="true"></span><input placeholder="+ Новый подпроект" maxlength="80" autocomplete="off" aria-label="Новый подпроект в «${esc(p.name)}»"></form>`:'')}
     </div>`}).join('');
+  const groups=rootSecs(mkG,{add:true,hideEmpty:f!=='all',empty:'Проектов пока нет'});
   const allClosed=topProjects().length&&topProjects().every(([pid])=>S.pcol.includes(pid));
   $('#main').innerHTML=`<section class="nl-top">
       <h1 class="nl-h1">Проекты</h1>
@@ -1358,6 +1391,7 @@ function renderProjects(){
       <span class="nl-sum num">${list.length-narch} ${plural(list.length-narch,'проект','проекта','проектов')}${narch?` + ${narch} в архиве`:''} · ${open} открыто${late?` · <span class="late">${late} просрочено</span>`:''}</span>
       <button class="nl-tg" data-act="pitems" aria-pressed="${S.pitems!==false}">${I.task}${I.memo} Задачи и заметки</button>${narch?archToggle('nl-tg'):''}
       ${topProjects().length?`<button class="ghost" data-act="${allClosed?'expandall':'collapseall'}">${allClosed?'Развернуть все':'Свернуть все'}</button>`:''}
+      <button class="ghost" data-act="newroot" title="Новый корневой узел — отдельный раздел со своими проектами">${I.plus} Корневой узел</button>
       <button class="btn" data-act="newproj">${I.plus} Новый проект</button>
     </section>
     <div class="nl">
@@ -1377,7 +1411,7 @@ function renderDone(){
   const q=(S.dq||'').trim().toLowerCase();
   const desc=pid=>{const out=[pid];for(const [c] of childProjects(pid))out.push(...desc(c));return out};
   let total=0;
-  const groups=topProjects().filter(([pid])=>visProj(pid)).map(([pid,p])=>{
+  const mkG=arr=>arr.filter(([pid])=>visProj(pid)).map(([pid,p])=>{
     const rows=[];for(const id of desc(pid)){if(!visProj(id))continue;const sp=S.projects[id];for(const t of sp.tasks){if(t.status!=='done')continue;if(from&&!((t.doneAt||0)>=from))continue;
       if(q&&!((t.title||'').toLowerCase().includes(q)||(sp.name||'').toLowerCase().includes(q)))continue;rows.push([t,id])}}
     if(!rows.length)return'';total+=rows.length;rows.sort((a,b)=>(b[0].doneAt||0)-(a[0].doneAt||0));
@@ -1392,6 +1426,7 @@ function renderDone(){
           <span class="dn-d num">${t.doneAt?fmtDate(ymd(new Date(t.doneAt))):'—'}</span>
           <span class="nl-x"><button class="icodel" data-deltask="${t.id}" aria-label="Удалить задачу «${esc(t.title)}»" title="Удалить">${I.trash}</button></span></div>`}).join('')}
     </div>`}).join('');
+  const groups=rootSecs(mkG,{hideEmpty:true});
   const active=document.activeElement&&document.activeElement.id==='dq';
   $('#main').innerHTML=`<section class="nl-top">
       <h1 class="nl-h1">Выполненные</h1>
@@ -1406,6 +1441,10 @@ function renderDone(){
   if(active){const i=$('#dq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
 document.addEventListener('input',e=>{if(e.target.id==='dq'){S.dq=e.target.value;renderDone()}});
+document.addEventListener('input',e=>{const r=e.target.dataset&&e.target.dataset.renameRoot;if(!r||!S.map[r])return;S.map[r].text=e.target.value;persist('map');if(S.screen==='map')redrawMap()});
+document.addEventListener('focusout',e=>{const r=e.target.dataset&&e.target.dataset.renameRoot;if(!r||!S.map[r])return;if(!S.map[r].text.trim()){S.map[r].text=r==='root'?'Мои проекты':'Без названия';persist('map')}setTimeout(()=>{renderChips();if(S.screen!=='map')renderMain();else redrawMap()},0)});
+document.addEventListener('keydown',e=>{if(e.target.dataset&&e.target.dataset.renameRoot&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.target.blur()}});
+document.addEventListener('change',e=>{if(e.target.id==='projRoot')moveToRoot(e.target.dataset.pid,e.target.value)});
 
 /* ---------- project screen: tasks table + subprojects side ---------- */
 function renderProject(){
@@ -1415,7 +1454,7 @@ function renderProject(){
     ${chain.length?`<div class="crumb">${chain.map(c=>`<button data-screen="${c}">${esc(S.projects[c].name)}</button>`).join('<span>›</span>')}<span>›</span></div>`:''}
     <div class="ptitle"><button class="sn-dot big" data-colorfor="${topProjOf(pid)}" style="background:${projColor(pid)}" aria-label="Цвет проекта" title="${chain.length?'Цвет задаётся у корневого проекта':'Цвет проекта'}"></button><input class="pname" id="projName" value="${esc(p.name)}" aria-label="Название проекта" maxlength="80">${archBtn(pid,true)}<button class="icodel big" data-act="delproj" aria-label="Удалить проект" title="Удалить проект">${I.trash}</button></div>
     ${isArch(pid)?`<div class="arch-note">${I.arch}<span>${p.archived?'Проект в архиве — на картах и в списках он бледно-серый.':'В архиве вместе с «'+esc(S.projects[projChain(pid).find(c=>S.projects[c].archived)].name)+'».'}</span>${p.archived?'<button class="ghost" data-arch="'+pid+'">Вернуть из архива</button>':''}</div>`:''}
-    <div><button class="btn sec" data-act="projonmap">${I.map} На карте</button></div>
+    <div class="pacts">${!chain.length&&rootIds().length>1?`<label class="proot">${I.tree}<select id="projRoot" data-pid="${pid}" aria-label="Корневой узел проекта">${rootIds().map(r=>`<option value="${r}" ${rootOfProject(pid)===r?'selected':''}>${esc(S.map[r].text||'Без названия')}</option>`).join('')}</select></label>`:''}<button class="btn sec" data-act="projonmap">${I.map} На карте</button></div>
     <div class="pmeta"><div class="bar" aria-hidden="true"><b></b></div><span id="pstat"></span></div>
     ${S.confirmDel?`<div class="pc-ask wide"><span>Удалить проект «${esc(p.name)}» со всеми задачами и веткой на карте?${nsub?' Подпроекты останутся и поднимутся на уровень выше.':''}</span><button class="askb danger" data-act="delproj-yes">Удалить</button><button class="askb" data-act="delproj-no">Отмена</button></div>`:''}
   </section>
@@ -1473,7 +1512,7 @@ function renderListOnly(){
 function deleteTask(pid,tid){
   const p=S.projects[pid];const t=p.tasks.find(x=>x.id===tid);if(!t)return()=>{};const snapP=clone(p),snapM=clone(S.map);const node=t.nodeId&&S.map[t.nodeId];
   p.tasks.splice(p.tasks.indexOf(t),1);
-  if(node){const par=parentOf(t.nodeId);if(par){const arr=S.map[par].children,i=arr.indexOf(t.nodeId);arr.splice(i,1,...node.children.filter(c=>S.map[c]));if(par==='root')for(const c of node.children)if(S.map[c])S.map[c].side=node.side||'right';delete S.map[t.nodeId];if(S.sel===t.nodeId)S.sel=par}persist('map')}
+  if(node){const par=parentOf(t.nodeId);if(par){const arr=S.map[par].children,i=arr.indexOf(t.nodeId);arr.splice(i,1,...node.children.filter(c=>S.map[c]));if(isRootId(par))for(const c of node.children)if(S.map[c])S.map[c].side=node.side||'right';delete S.map[t.nodeId];if(S.sel===t.nodeId)S.sel=par}persist('map')}
   persist(pid);
   return ()=>{S.projects[pid]=snapP;S.map=snapM;persist(pid);persist('map')};
 }
@@ -1560,7 +1599,7 @@ function deleteProject(pid){
   if(k){const up=parentOf(k)||'root';
     for(const x of subtree(k)){if(x===k||!S.map[x]||!S.map[x].project||!S.projects[S.map[x].project])continue;
       let c=parentOf(x),direct=true;while(c&&c!==k){if(S.map[c].project&&S.projects[S.map[c].project]){direct=false;break}c=parentOf(c)}
-      if(direct&&c===k){const pp=parentOf(x);S.map[pp].children=S.map[pp].children.filter(z=>z!==x);if(up==='root')S.map[x].side=pickSide();S.map[up].children.push(x)}}
+      if(direct&&c===k){const pp=parentOf(x);S.map[pp].children=S.map[pp].children.filter(z=>z!==x);if(isRootId(up))S.map[x].side=pickSide(up);S.map[up].children.push(x)}}
     const ids=subtree(k);S.map[up].children=S.map[up].children.filter(z=>z!==k);for(const x of ids)delete S.map[x]}
   for(const x in S.map){const n=S.map[x];if(n.taskPid===pid){delete n.taskId;delete n.taskPid}}
   persist(pid);persist('map');
@@ -1571,7 +1610,7 @@ function deleteBranch(id){
   const m=S.map,ids=subtree(id),par=parentOf(id);const pids=ids.map(k=>m[k].project).filter(p=>p&&S.projects[p]);
   const snapM=clone(m),snapP={},snapT={};for(const p of pids)snapP[p]=clone(S.projects[p]);
   for(const k of ids){const t=taskOf(m[k]);if(t&&!pids.includes(m[k].taskPid)){const tp=m[k].taskPid;if(!snapT[tp])snapT[tp]=clone(S.projects[tp]);delete t.nodeId}}
-  m[par].children=m[par].children.filter(c=>c!==id);for(const k of ids)delete m[k];
+  if(m[par])m[par].children=m[par].children.filter(c=>c!==id);for(const k of ids)delete m[k];
   for(const p of pids)delete S.projects[p];
   for(const x in m){if(pids.includes(m[x].taskPid)){delete m[x].taskId;delete m[x].taskPid}}
   persist('map');for(const p of pids)persist(p);for(const tp in snapT)persist(tp);
@@ -1582,17 +1621,17 @@ function deleteBranch(id){
 function act(a,id){
   id=id||S.sel;const m=S.map,n=m[id];if(!n)return;
   if(a==='child'){const k=addChild(id,'Новая идея');S.sel=k;persist('map');afterMapEdit(true)}
-  else if(a==='sib'){const par=parentOf(id);if(!par)return;const k='n'+uid();m[k]={text:'Новая идея',children:[]};if(par==='root')m[k].side=n.side||'right';const arr=m[par].children;arr.splice(arr.indexOf(id)+1,0,k);S.sel=k;persist('map');afterMapEdit(true)}
+  else if(a==='sib'){const par=parentOf(id);if(!par)return;const k='n'+uid();m[k]={text:'Новая идея',children:[]};if(isRootId(par))m[k].side=n.side||'right';const arr=m[par].children;arr.splice(arr.indexOf(id)+1,0,k);S.sel=k;persist('map');afterMapEdit(true)}
   else if(a==='totask'){const pid=projOf(id);if(!pid||n.taskId)return;const t={id:'t'+uid(),title:n.text,status:'todo',prio:'mid',due:'',notes:'',created:Date.now(),nodeId:id};S.projects[pid].tasks.push(t);n.taskId=t.id;n.taskPid=pid;persist('map');afterTaskChange(pid);toast('Задача добавлена в «'+S.projects[pid].name+'»')}
   else if(a==='opentask'){if(n.taskId)openTask(n.taskId)}
-  else if(a==='mkproj'){if((n.project&&S.projects[n.project])||id==='root')return;const pid=newProject(n.text||'Новый проект');n.project=pid;persist(pid);persist('map');renderChips();redrawMap();renderPanel(true);renderMbar();toast('Проект «'+S.projects[pid].name+'» создан')}
+  else if(a==='mkproj'){if((n.project&&S.projects[n.project])||isRootId(id))return;const pid=newProject(n.text||'Новый проект');n.project=pid;persist(pid);persist('map');renderChips();redrawMap();renderPanel(true);renderMbar();toast('Проект «'+S.projects[pid].name+'» создан')}
   else if(a==='openproj'){const pid=n.project;if(pid&&S.projects[pid]){S.screen=pid;S.confirmDel=false;render()}}
   else if(a==='note'){S.panel=true;renderPanel();redrawMap()}
   else if(a==='del'){
-    if(id==='root')return;
+    if(id==='root')return;if(isRootId(id)){deleteRoot(id);return}
     const np=subtree(id).filter(k=>m[k].project&&S.projects[m[k].project]).length;
     if(np&&S.confirmNode!==id){S.confirmNode=id;renderMbar();renderPanel();return}   // ask first when projects would be deleted
-    S.confirmNode=null;const r=deleteBranch(id);S.sel=r.par;S.panel=S.panel&&r.par!=='root'?S.panel:false;
+    S.confirmNode=null;const r=deleteBranch(id);S.sel=r.par||'root';S.panel=S.panel&&!isRootId(r.par)?S.panel:false;
     renderChips();renderMain();
     toast(r.np?`Удалено: ${r.np} ${plural(r.np,'проект','проекта','проектов')}, ${r.n} ${plural(r.n,'узел','узла','узлов')}`:(r.n>1?`Удалено узлов: ${r.n}`:'Узел удалён'),()=>{r.undo();render()});
   }
@@ -1637,19 +1676,23 @@ let TG={};
 const TVP={x:0,y:0,k:1,init:false};
 function layoutTree(){
   buildVirtual();AR=archNodes();const m=S.map,G={};
-  const metrics=id=>{const n=nodeObj(id),root=id==='root',virt=!m[id];const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
+  const metrics=id=>{const n=nodeObj(id),root=isRootId(id),virt=!m[id];const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
     let extra=root?36:(taskOf(n)?42:n.memoId?45:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
     return{label,st,w:Math.max(root?120:56,textW(label,font)+extra),h:root?48:(n.project?38:virt?30:34)}};
   const size=id=>{const g=metrics(id);G[id]=g;const n=nodeObj(id);const kids=n.collapsed?[]:treeKids(id);let kh=0;kids.forEach((c,i)=>{kh+=size(c)+(i?VG:0)});g.kh=kh;g.sub=Math.max(g.h,kh);return g.sub};
   const place=(id,x,top,dir,branch,depth)=>{const g=G[id],n=nodeObj(id);g.cy=top+g.sub/2;g.x=dir>0?x:x-g.w;g.y=g.cy-g.h/2;g.dir=dir;g.branch=branch;g.depth=depth;
     if(n.collapsed)return;let y=g.cy-g.kh/2;const nx=dir>0?g.x+g.w+HG:g.x-HG;for(const c of treeKids(id)){place(c,nx,y,dir,branch,depth+1);y+=G[c].sub+VG}};
-  const R=G.root=metrics('root');R.depth=0;R.branch=null;R.x=-R.w/2;R.y=-R.h/2;R.cy=0;R.dir=1;
-  const kids=m.root.children.filter(c=>m[c]&&(showArch()||!AR.has(c)));const right=kids.filter(c=>m[c].side!=='left'),left=kids.filter(c=>m[c].side==='left');
-  const stack=(arr,dir)=>{let tot=0;arr.forEach((c,i)=>{tot+=size(c)+(i?VG*1.6:0)});let y=-tot/2;arr.forEach(c=>{place(c,dir>0?R.w/2+HG+10:-R.w/2-HG-10,y,dir,c,1);y+=G[c].sub+VG*1.6})};
-  stack(right,1);stack(left,-1);
+  let cursor=0;
+  for(const rid of rootIds()){const before=new Set(Object.keys(G));
+    const R=G[rid]=metrics(rid);R.depth=0;R.branch=null;R.x=-R.w/2;R.y=-R.h/2;R.cy=0;R.dir=1;R.rootOf=rid;
+    const kids=m[rid].collapsed?[]:m[rid].children.filter(c=>m[c]&&(showArch()||!AR.has(c)));const right=kids.filter(c=>m[c].side!=='left'),left=kids.filter(c=>m[c].side==='left');
+    const stack=(arr,dir)=>{let tot=0;arr.forEach((c,i)=>{tot+=size(c)+(i?VG*1.6:0)});let y=-tot/2;arr.forEach(c=>{place(c,dir>0?R.w/2+HG+10:-R.w/2-HG-10,y,dir,c,1);y+=G[c].sub+VG*1.6})};
+    stack(right,1);stack(left,-1);
+    const mine=Object.keys(G).filter(k=>!before.has(k)&&G[k].x!==undefined);let y0=1e9,y1=-1e9;for(const k of mine){y0=Math.min(y0,G[k].y);y1=Math.max(y1,G[k].y+G[k].h)}
+    const dy=rid==='root'?0:cursor-y0;for(const k of mine){G[k].y+=dy;G[k].cy+=dy}cursor=y1+dy+70}
   return G;
 }
-function branchColor(bid){if(!bid)return'var(--ink)';const n=S.map[bid];if(n&&n.project&&S.projects[n.project])return projColor(n.project);const i=S.map.root.children.indexOf(bid);return `var(${PCOL[(i<0?0:i)%PCOL.length]})`}
+function branchColor(bid){if(!bid)return'var(--ink)';const n=S.map[bid];if(n&&n.project&&S.projects[n.project])return projColor(n.project);const pr=parentOf(bid);const i=pr&&S.map[pr]?S.map[pr].children.indexOf(bid):0;return `var(${PCOL[(i<0?0:i)%PCOL.length]})`}
 function mountTree(){
   $('#mapbox').innerHTML=`<svg id="tsvg" aria-label="Карта проектов, дерево"><g id="tg"></g></svg>
     <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>☐ задача</span><span style="color:var(--warn)">◧ в работе</span><span style="color:var(--ok)">☑ готово</span><span style="color:var(--bad)">☐ просрочено</span><span>☰ заметка</span><span>⊕ ветка свёрнута</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${archToggle('gbtn')}</div>
@@ -1664,8 +1707,8 @@ function drawTree(){
   const edges=id=>{const n=nodeObj(id);if(n.collapsed)return;const a=TG[id];for(const c of treeKids(id)){const b=TG[c];if(!b||b.x===undefined)continue;
     const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;const virt=!m[c];const ar=AR.has(c)||(virt&&AR.has(id));
     html+=`<path class="edge${virt?' vedge':''}${ar?' arch':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${virt?.45:b.depth>1?.6:.9}"/>`;edges(c)}};
-  edges('root');
-  for(const id in TG){const a=TG[id];if(a.x===undefined)continue;const n=nodeObj(id);const virt=!m[id];const root=id==='root';const col=branchColor(a.branch);const t=taskOf(n);
+  for(const r of rootIds())edges(r);
+  for(const id in TG){const a=TG[id];if(a.x===undefined)continue;const n=nodeObj(id);const virt=!m[id];const root=isRootId(id);const col=branchColor(a.branch);const t=taskOf(n);
     const isP=n.project&&S.projects[n.project];
     const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+((AR.has(id)||(virt&&AR.has(n.par)))?' arch':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
     let mark='';const cx=a.x+15,cy=a.cy;
@@ -1682,14 +1725,14 @@ function drawTree(){
 }
 function renderMbar(){
   const bar=$('#mbar');if(!bar)return;const id=S.sel,n=S.map[id];if(!n){bar.innerHTML='';return}
-  const root=id==='root',t=taskOf(n),pid=projOf(id),isP=n.project&&S.projects[n.project];
+  const root=isRootId(id),t=taskOf(n),pid=projOf(id),isP=n.project&&S.projects[n.project];
   bar.innerHTML=`<input id="nodeText" value="${esc(n.text)}" aria-label="Текст узла" maxlength="120">
    <button class="pri" data-m="child" title="Tab">${I.plus} Ветка</button>
    ${root?'':`<button data-m="sib" title="Enter">${I.plus} Рядом</button>`}
    ${isP?`<button data-m="openproj">${I.folder} Открыть проект</button>`:(!root?`<button data-m="mkproj">${I.folder} ${pid?'Сделать подпроектом':'Сделать проектом'}</button>`:'')}
    ${t?`<button data-m="opentask">${I.list} Задача: ${STATUS.find(s=>s[0]===t.status)[1].toLowerCase()}</button>`:(pid&&!isP?`<button data-m="totask">${I.list} В задачи</button>`:'')}
    <button data-m="note">${I.note} Заметка${n.body&&n.body.trim()?' •':''}</button>
-   ${root?'':`<button class="danger" data-m="del" title="Delete">Удалить</button>`}${S.confirmNode===id?delAsk(id):''}`;
+   ${id==='root'?'':`<button class="danger" data-m="del" title="Delete">Удалить${root?' раздел':''}</button>`}${S.confirmNode===id?delAsk(id):''}`;
   const inp=bar.querySelector('#nodeText');
   inp.oninput=e=>{renameNode(id,e.target.value);drawTree();const nt=$('#noteTitle');if(nt&&S.panel)nt.value=e.target.value};
   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur()}};
@@ -1745,15 +1788,15 @@ function buildGraph(){
   const ghosts={};
   for(const id in m){if(hideA&&AR.has(id))continue;for(const t of linksOf(m[id].body)){const tid=nodeByText(t);if(tid)addE(id,tid,'link');else{const gid='ghost:'+lc(t);if(!ghosts[gid]){ghosts[gid]=1;nodes.push({id:gid,kind:'ghost',label:t,src:id})}addE(id,gid,'link')}}}
   const deg=new Map();for(const e of edges){deg.set(e.a,(deg.get(e.a)||0)+1);deg.set(e.b,(deg.get(e.b)||0)+1)}
-  let out=nodes;if(!S.gopt.orphans)out=nodes.filter(n=>deg.get(n.id)||n.id==='root');
+  let out=nodes;if(!S.gopt.orphans)out=nodes.filter(n=>deg.get(n.id)||isRootId(n.id));
   const ids=new Set(out.map(n=>n.id));const okE=e=>ids.has(e.a)&&ids.has(e.b);return{nodes:out,edges:edges.filter(okE),deg};
 }
-function branchOfNode(id,par){let c=id,g=0;while(c&&c!=='root'&&g++<200){const p=par.get(c);if(p==='root'||p==null)return c;c=p}return null}
+function branchOfNode(id,par){let c=id,g=0;while(c&&!isRootId(c)&&g++<200){const p=par.get(c);if(p==null||isRootId(p))return c;c=p}return null}
 function branchHex(bid){if(!bid)return colors.ink;const n=S.map[bid];if(n&&n.project&&S.projects[n.project]){const tp=S.projects[topProjOf(n.project)];const c=tp?tp.color:0;return typeof c==='string'&&c[0]==='#'?c:colors.b[(+c||0)%PCOL.length]}
-  const i=S.map.root.children.indexOf(bid);return colors.b[(i<0?0:i)%PCOL.length]}
+  const pr=parentOf(bid);const i=pr&&S.map[pr]?S.map[pr].children.indexOf(bid):0;return colors.b[(i<0?0:i)%PCOL.length]}
 function statusHex(t){if(!t)return null;if(t.status==='done')return colors.ok;if(t.status!=='done'&&t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
 function nodeColor(id){
-  const n=S.map[id];if(id==='root')return colors.ink;
+  const n=S.map[id];if(isRootId(id))return colors.ink;
   const t=taskOf(n);if(t){if(t.status==='done')return colors.ok;if(t.due&&t.due<todayStr())return colors.bad;if(t.status==='doing')return colors.warn;return colors.muted}
   if(n.project&&S.projects[n.project]){const c=S.projects[topProjOf(n.project)].color;return typeof c==='string'&&c[0]==='#'?c:colors.b[(+c||0)%PCOL.length]}
   return colors.node}
@@ -1763,17 +1806,22 @@ function computeTargets(){
   for(const n of SIM.list)if((n.kind==='ghost'||n.kind==='task'||n.kind==='memo')&&n.src&&N.has(n.src))add(n.src,n.id);
   const w=new Map(),dep=new Map();let maxD=1;
   const weigh=(id,d,seen)=>{if(seen.has(id))return 0;seen.add(id);dep.set(id,d);maxD=Math.max(maxD,d);const ks=kids.get(id)||[];let t=0;for(const c of ks)t+=weigh(c,d+1,seen);t=Math.max(1,t);w.set(id,t);return t};
-  const seen=new Set();if(!N.has('root'))return;weigh('root',0,seen);
-  const loose=SIM.list.filter(n=>!seen.has(n.id)).map(n=>n.id);           // nodes outside the tree (just in case)
-  const top=(kids.get('root')||[]);const pad=.8;const total=top.reduce((a,c)=>a+w.get(c)+pad,0)+loose.length||1;
-  const R=110*(S.gopt.dist||1);const leaves=w.get('root')||1;const scale=Math.max(1,(leaves*64)/(2*Math.PI*R*maxD));
-  const ring=d=>d*R*scale;
-  const place=(id,a0,a1,d)=>{const n=N.get(id);const a=(a0+a1)/2;n.tx=Math.cos(a)*ring(d);n.ty=Math.sin(a)*ring(d);
-    const ks=kids.get(id)||[];let s0=a0;const tw=ks.reduce((x,c)=>x+w.get(c),0)||1;for(const c of ks){const s1=s0+(a1-a0)*w.get(c)/tw;place(c,s0,s1,d+1);s0=s1}};
-  const rn=N.get('root');rn.tx=0;rn.ty=0;
-  let a=-Math.PI/2;const full=Math.PI*2;
-  for(const c of top){const span=full*(w.get(c)+pad)/total;place(c,a+full*pad/total/2,a+span-full*pad/total/2,1);a+=span}
-  for(const id of loose){const span=full/total;const n=N.get(id);n.tx=Math.cos(a+span/2)*ring(maxD+1);n.ty=Math.sin(a+span/2)*ring(maxD+1);a+=span}
+  const seen=new Set();const roots=rootIds().filter(r=>N.has(r));if(!roots.length)return;
+  const R=110*(S.gopt.dist||1);const full=Math.PI*2,pad=.8;const lay=[];
+  roots.forEach((rid,ri)=>{maxD=1;weigh(rid,0,seen);
+    let loose=[];if(ri===roots.length-1)for(const n of SIM.list)if(!seen.has(n.id)){loose.push(n.id);seen.add(n.id)}   // nodes outside any tree
+    const top=(kids.get(rid)||[]);const total=top.reduce((a,c)=>a+w.get(c)+pad,0)+loose.length||1;
+    const leaves=w.get(rid)||1;const scale=Math.max(1,(leaves*64)/(2*Math.PI*R*maxD));const ring=d=>d*R*scale;const pts=[];
+    const place=(id,a0,a1,d)=>{const n=N.get(id);const a=(a0+a1)/2;n.tx=Math.cos(a)*ring(d);n.ty=Math.sin(a)*ring(d);pts.push(n);
+      const ks=kids.get(id)||[];let s0=a0;const tw=ks.reduce((x,c)=>x+w.get(c),0)||1;for(const c of ks){const s1=s0+(a1-a0)*w.get(c)/tw;place(c,s0,s1,d+1);s0=s1}};
+    const rn=N.get(rid);rn.tx=0;rn.ty=0;pts.push(rn);
+    let a=-Math.PI/2;
+    for(const c of top){const span=full*(w.get(c)+pad)/total;place(c,a+full*pad/total/2,a+span-full*pad/total/2,1);a+=span}
+    for(const id of loose){const span=full/total;const n=N.get(id);n.tx=Math.cos(a+span/2)*ring(maxD+1);n.ty=Math.sin(a+span/2)*ring(maxD+1);pts.push(n);a+=span}
+    lay.push({pts,rad:top.length||loose.length?ring(maxD)+40:40})});
+  // разделы стоят рядом друг с другом слева направо, «Мои проекты» — первым
+  let x=0;lay.forEach((L,i)=>{if(i)x+=lay[i-1].rad+L.rad+60;for(const n of L.pts)n.tx+=x});
+  const shift=x/2;for(const L of lay)for(const n of L.pts)n.tx-=shift;
 }
 function refreshGraph(){
   if(!cv)return;const g=buildGraph();const old=SIM.nodes,next=new Map();
@@ -1784,13 +1832,13 @@ function refreshGraph(){
       s.x=(nb?nb.x:0)+Math.cos(a)*r;s.y=(nb?nb.y:0)+Math.sin(a)*r;fresh++}
     Object.assign(s,n);const d=g.deg.get(n.id)||0;const isP=n.kind==='node'&&S.map[n.id].project&&S.projects[S.map[n.id].project];
     s.isP=!!isP;const sz=S.gopt.size||1;
-    s.r=(S.gopt.sizeMode==='same'?(n.id==='root'?10:isP?8:n.kind==='ghost'?5:6):(n.id==='root'?13:n.kind==='ghost'?3.6+Math.min(3,Math.sqrt(d)):isP?8+Math.min(5,Math.sqrt(d)):4.5+Math.min(8,Math.sqrt(d)*1.9)))*sz;
-    let lbl=n.label||'';if(lbl.length>34)lbl=lbl.slice(0,33)+'…';const big=n.id==='root'||isP;s.lw=textW(lbl,`${big?600:500} ${(big?13.5:12.5)*(S.gopt.text||1)}px ${F_BODY}`)+6;
+    s.r=(S.gopt.sizeMode==='same'?(isRootId(n.id)?10:isP?8:n.kind==='ghost'?5:6):(isRootId(n.id)?13:n.kind==='ghost'?3.6+Math.min(3,Math.sqrt(d)):isP?8+Math.min(5,Math.sqrt(d)):4.5+Math.min(8,Math.sqrt(d)*1.9)))*sz;
+    let lbl=n.label||'';if(lbl.length>34)lbl=lbl.slice(0,33)+'…';const big=isRootId(n.id)||isP;s.lw=textW(lbl,`${big?600:500} ${(big?13.5:12.5)*(S.gopt.text||1)}px ${F_BODY}`)+6;
     next.set(n.id,s)}
   {const par=new Map();for(const e of g.edges)if(e.kind==='tree')par.set(e.b,e.a);
    for(const s of next.values()){
      if(s.kind==='ghost'){s.color=colors.ghost;s.ring=null;s.shape=null;continue}
-     if(s.id==='root'){s.color=colors.ink;s.ring=null;s.shape=null;continue}
+     if(isRootId(s.id)){s.color=colors.ink;s.ring=null;s.shape=null;continue}
      s.color=branchHex(branchOfNode(s.id,par));
      const t=s.kind==='task'?(S.projects[s.taskPid]||{tasks:[]}).tasks.find(x=>x.id===s.taskId):(S.map[s.id]?taskOf(S.map[s.id]):null);
      s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'memo':(s.kind==='task'||(S.map[s.id]&&t))?'task':null;
@@ -1800,9 +1848,9 @@ function refreshGraph(){
    if(S.gopt.sizeMode!=='same'){const sz=S.gopt.size||1,kids=new Map();for(const e of g.edges)if(e.kind==='tree')(kids.get(e.a)||kids.set(e.a,[]).get(e.a)).push(e.b);
      const W=new Map(),own=s=>s.isP?1:s.kind==='node'?.5:(s.kind==='task'||s.kind==='memo')?.25:0;
      const wt=(id,seen)=>{if(W.has(id))return W.get(id);if(seen.has(id))return 0;seen.add(id);let t=0;for(const c of kids.get(id)||[]){const cs=next.get(c);if(cs)t+=own(cs)+wt(c,seen)}W.set(id,t);return t};
-     let mx=0;for(const s of next.values()){if(s.kind!=='node'||s.id==='root')continue;const w=wt(s.id,new Set());
+     let mx=0;for(const s of next.values()){if(s.kind!=='node'||isRootId(s.id))continue;const w=wt(s.id,new Set());
        s.r=Math.min(58,(s.isP?5.5:4.5)+(s.isP?10:6)*Math.pow(w,.7))*sz;s.w=w;if(s.r>mx)mx=s.r}
-     const rt=next.get('root');if(rt)rt.r=Math.max(14*sz,mx*.8)}}
+     for(const r of rootIds()){const rt=next.get(r);if(rt)rt.r=Math.max(14*sz,mx*.8)}}}
   SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'?next.get(e.b).color:null,arch:!!(next.get(e.b).arch)}));SIM.adj=adj;
   if(S.gopt.group){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else for(const n of SIM.list){n.tx=null;n.ty=null}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
@@ -1854,7 +1902,7 @@ function draw(){
     if(n.id===sel){ctx.globalAlpha=1;ctx.strokeStyle=colors.accent;ctx.lineWidth=2/v.k;ctx.beginPath();ctx.arc(n.x,n.y,n.r+4/v.k,0,Math.PI*2);ctx.stroke()}}
   // labels live in graph space (they zoom with the graph, as in Obsidian), so the no-overlap spacing holds at any zoom
   ctx.textAlign='center';ctx.textBaseline='top';const ts=S.gopt.text||1;
-  for(const n of SIM.list){const special=(F&&F.has(n.id))||(M&&M.has(n.id))||n.id===sel;const big=n.id==='root'||n.isP;
+  for(const n of SIM.list){const special=(F&&F.has(n.id))||(M&&M.has(n.id))||n.id===sel;const big=isRootId(n.id)||n.isP;
     const fs=(big?13.5:12.5)*ts;const onScreen=fs*v.k;
     let a=S.gopt.labels?Math.max(0,Math.min(1,(onScreen-5.5)/3.5)):0;if(big&&S.gopt.labels)a=Math.max(a,Math.min(1,(onScreen-3)/3));if(special)a=1;
     if(F&&!F.has(n.id))a*=.15;if(M&&!M.has(n.id))a*=.15;if(n.arch&&!special)a*=.5;if(a<.03)continue;
@@ -1991,7 +2039,7 @@ function renderPanelSecs(){
   const kids=n.children.filter(c=>S.map[c]);const outs=[...new Map(linksOf(n.body).map(x=>[lc(x),x])).values()];const bls=backlinks(id);
   let projSec='';
   if(isP){const p=S.projects[n.project],s=stats(p),par=parentProject(n.project);projSec=`<div class="sec"><h4>${I.folder} ${par?'Подпроект «'+esc(S.projects[par].name)+'»':'Проект'}</h4><button class="projbtn" data-np="openproj"><span class="dot" style="background:${projColor(n.project)}"></span><b>${esc(p.name)} — список задач</b><span class="num">${s.d}/${s.t}</span></button></div>`}
-  else if(id!=='root')projSec=`<div class="sec"><h4>${I.folder} ${pid?'Подпроект':'Проект'}</h4><button class="ghost" data-np="mkproj" style="padding-left:0">${I.plus} ${pid?'Сделать подпроектом «'+esc(S.projects[pid].name)+'»':'Сделать проектом'} — появится список задач</button></div>`;
+  else if(!isRootId(id))projSec=`<div class="sec"><h4>${I.folder} ${pid?'Подпроект':'Проект'}</h4><button class="ghost" data-np="mkproj" style="padding-left:0">${I.plus} ${pid?'Сделать подпроектом «'+esc(S.projects[pid].name)+'»':'Сделать проектом'} — появится список задач</button></div>`;
   let taskSec='';
   if(t)taskSec=`<div class="sec"><h4>${I.list} Задача · ${esc(S.projects[n.taskPid].name)}</h4><div class="tl ${t.status}"><button class="ck ${t.status}" data-ck="${t.id}" aria-label="Сменить статус">${t.status==='done'?I.check:''}</button><button class="tx" data-task="${t.id}">${esc(t.title)}</button>${t.due?`<span class="due ${t.status!=='done'&&t.due<todayStr()?'late':''}">${fmtDate(t.due)}</span>`:''}</div></div>`;
   else if(pid&&!isP)taskSec=`<div class="sec"><h4>${I.list} Задача</h4><button class="ghost" data-np="totask" style="padding-left:0">${I.plus} Сделать задачей в «${esc(S.projects[pid].name)}»</button></div>`;
@@ -2115,6 +2163,9 @@ document.addEventListener('click',e=>{
   if(b.dataset.delnode){const k=b.dataset.delnode;if(!S.map[k])return;
     if(subtree(k).some(x=>S.map[x].project&&S.projects[S.map[x].project])){S.sel=k;S.panel=true;S.confirmNode=k;redrawMap();renderMbar();renderPanel();return}
     const r=deleteBranch(k);redrawMap();renderMbar();renderPanel();toast(r.n>1?`Удалено узлов: ${r.n}`:'Узел удалён',()=>{r.undo();render()});return}
+  if(b.dataset.act==='newroot'){document.getElementById('app').classList.remove('navopen');const k=addRoot('Новый раздел');TVP.init=false;GVP.auto=true;render();
+    const i=document.getElementById('rn-'+k);if(i){document.getElementById('app').classList.add('navopen');i.focus();i.select()}return}
+  if(b.dataset.delroot){deleteRoot(b.dataset.delroot);return}
   if(b.dataset.arch){e.stopPropagation();const pid=b.dataset.arch;setArch(pid,!S.projects[pid].archived);return}
   if(b.dataset.act==='showarch'){S.showArch=!showArch();cacheLocal();GVP.auto=true;TVP.init=false;render();if(S.screen==='map'&&S.mapView==='tree')treeFit();return}
   if(b.dataset.df){S.dfilter=b.dataset.df;renderDone();return}
@@ -2129,7 +2180,7 @@ document.addEventListener('click',e=>{
     if(nt){document.getElementById('app').classList.remove('navopen');openTab(scr,mv);return}}
   if(b.dataset.screen){document.getElementById('app').classList.remove('navopen');if(S.screen!==b.dataset.screen){S.screen=b.dataset.screen;S.confirmDel=false;render()}return}
   const a=b.dataset.act;
-  if(a==='newproj'){const pid=newProject('Новый проект');addChild('root','Новый проект',{project:pid});persist(pid);persist('map');S.screen=pid;render();const i=$('#projName');i.focus();i.select();return}
+  if(a==='newproj'){const rt=(b&&b.dataset.root&&S.map[b.dataset.root])?b.dataset.root:'root';const pid=newProject('Новый проект');addChild(rt,'Новый проект',{project:pid});persist(pid);persist('map');S.screen=pid;render();const i=$('#projName');i.focus();i.select();return}
   if(a==='example'){makeExample();persist('map');for(const pid in S.projects)persist(pid);TVP.init=false;GVP.init=false;render();return}
   if(a==='addsub'){const np=addSubproject(S.screen,'Новый подпроект');S.screen=np;render();const i=$('#projName');i.focus();i.select();return}
   if(a==='projonmap'){const k=nodeOfProject(S.screen);if(k)goNode(k);return}
@@ -2202,7 +2253,7 @@ document.addEventListener('keydown',e=>{
   if(S.screen!=='map'||S.mapView!=='tree'||S.openTask)return;
   const tag=(e.target.tagName||'').toLowerCase();if(tag==='input'||tag==='textarea')return;
   if(e.key==='Tab'){e.preventDefault();act('child')}
-  else if(e.key==='Enter'){e.preventDefault();S.sel==='root'?act('child'):act('sib')}
+  else if(e.key==='Enter'){e.preventDefault();isRootId(S.sel)?act('child'):act('sib')}
   else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();act('del')}
   else if(e.key==='F2'){e.preventDefault();const i=$('#nodeText');i?.focus();i?.select()}
 });
