@@ -574,6 +574,13 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .in-pane .shell{grid-template-columns:minmax(0,1fr)}
 .in-pane .work{padding-left:14px!important;padding-right:14px!important}
 .in-pane .auth{display:none!important}
+/* шифрование */
+.e2e-gen{display:flex;flex-direction:column;gap:8px}
+.e2e-out{display:flex;align-items:center;gap:8px;border:1px dashed var(--accent);border-radius:var(--rs);padding:8px 10px}
+.e2e-out code{flex:1;font-family:var(--f-mono);font-size:18px;letter-spacing:2px;color:var(--ink);word-break:break-all}
+.e2e-ck{display:flex!important;gap:8px;align-items:flex-start;font-weight:400!important;font-size:13px!important;color:var(--ink)!important;line-height:1.4}
+.e2e-ck input{margin-top:2px}
+.sn-item.e2e-on svg{color:var(--ok)}.sn-item.e2e-off svg{color:var(--warn)}
 /* project colour picker */
 .sn-pw{display:flex;align-items:center;gap:0;padding-left:calc(var(--d,0) * 16px)}
 .sn-pw .sn-proj{padding-left:10px;flex:1;min-width:0}
@@ -944,7 +951,7 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
 function cacheLocal(){IX=null;lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch,scol:S.scol}))}
 function setSync(s){const el=$('#sync');el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
-  el.textContent=s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
+  el.textContent=s==='locked'?'Нужна фраза шифрования':s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Облако недоступно в этом окне. Данные лежат в браузере — сделайте резервную копию на вкладке «Проекты».':''}
 
 /* ---------- persistence: one doc per project + one "map" doc ----------
@@ -963,8 +970,8 @@ function persist(id){
 }
 async function flush(id){
   const p=pend[id];if(!p)return;clearTimeout(p.t);p.waiting=false;if(p.busy){p.again=true;return}p.busy=true;
-  try{const d=docData(id);if(d){const body=clone(d);body._t=LT[id]||Date.now();await col.doc(id).set(body);seenRemote.add(id);if(id!=='map')synced.add(id)}else{await col.doc(id).delete();seenRemote.delete(id);synced.delete(id)}cacheLocal();lastSaved=Date.now();if(!anyPending())setSync('cloud')}
-  catch(e){setSync('err');p.busy=false;p.waiting=true;p.t=setTimeout(()=>flush(id),4000);return}
+  try{const d=docData(id);if(d){const body=clone(d);body._t=LT[id]||Date.now();await col.doc(id).set(body);seenRemote.add(id);if(id!=='map')synced.add(id)}else{await col.doc(id).delete();seenRemote.delete(id);synced.delete(id)}cacheLocal();lastSaved=Date.now();p.busy=false;if(!p.again&&!anyPending())setSync('cloud')}
+  catch(e){setSync(e&&e.locked?'locked':'err');p.busy=false;p.waiting=true;p.t=setTimeout(()=>flush(id),4000);return}
   p.busy=false;if(p.again){p.again=false;flush(id)}
 }
 function anyPending(){return Object.values(pend).some(p=>p.waiting||p.busy||p.again)}
@@ -1337,7 +1344,7 @@ function renderProjects(){
       ${groups||`<div class="tempty">${list.length?'Под этот фильтр ничего не подходит':'Проектов пока нет. Создайте первый кнопкой «Новый проект».'}${!list.length?'<div style="margin-top:12px"><button class="btn sec" data-act="example">Добавить пример</button></div>':''}</div>`}
     </div>
     <div class="backup"><div><b>Резервная копия</b><span>Все проекты, задачи и карта в одном файле. Храните его у себя — из него можно всё восстановить.</span></div>
-      <div class="brow"><button class="btn sec" data-act="backup">${dl?'Скачать копию':'Скопировать копию'}</button><button class="btn sec" data-act="restore">Восстановить из файла</button><input type="file" id="restoreFile" accept=".json,application/json" hidden></div>
+      <div class="brow"><button class="btn sec" data-act="backup">${dl?'Скачать копию':'Скопировать копию'}</button>${typeof e2eOn==='function'&&e2eOn()?'<button class="btn sec" data-act="backup-enc" title="Файл зашифрован той же фразой, что и облако">Скачать зашифрованную</button>':''}<button class="btn sec" data-act="restore">Восстановить из файла</button><input type="file" id="restoreFile" accept=".json,application/json" hidden></div>
       ${S.restoreAsk?`<div class="bask">Заменить текущие данные содержимым файла «${esc(S.restoreAsk.name)}» (${S.restoreAsk.n} ${plural(S.restoreAsk.n,'проект','проекта','проектов')})? <button class="ghost danger" data-act="restore-yes">Заменить</button><button class="ghost" data-act="restore-no">Отмена</button></div>`:''}</div>`;
 }
 
@@ -2374,13 +2381,14 @@ document.addEventListener('fullscreenchange',()=>{const b=document.getElementByI
 /* ---------- backup ---------- */
 function backupJSON(){return JSON.stringify({app:'shtab',version:1,exported:new Date().toISOString(),projects:S.projects,map:S.map},null,1)}
 async function doBackup(){
-  const json=backupJSON();const name='shtab-backup-'+todayStr()+'.json';
+  let json=backupJSON();let name='shtab-backup-'+todayStr()+'.json';
+  if(arguments[0]==='enc'&&typeof encryptBackup==='function'){const e=await encryptBackup(json);if(!e){toast('Шифрование не включено');return}json=e;name='shtab-backup-'+todayStr()+'-encrypted.json'}
   if(dl){try{const r=await dl.save({filename:name,data:json});if(r&&r.status==='saved')toast('Копия сохранена: '+name);return}catch(e){if(e&&e.code==='declined')return}}
   try{await navigator.clipboard.writeText(json);toast('Копия скопирована. Вставьте её в заметку или файл .json')}catch(e){toast('Не удалось скопировать. Попробуйте ещё раз')}
 }
 document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.due){const f=findTask(e.target.dataset.due);if(f){f.t.due=e.target.value;afterTaskChange(f.pid)}return}
   if(e.target.id!=='restoreFile')return;const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||d.app!=='shtab'||!d.projects||!d.map||!d.map.root)throw 0;S.restoreAsk={name:f.name,n:Object.keys(d.projects).length,data:d};renderProjects()}catch(_){toast('Это не файл копии Штаба')}};
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d&&d.app==='shtab'&&d.enc&&!d.projects){if(typeof decryptBackup==='function')decryptBackup(d,f.name);else toast('Зашифрованную копию можно открыть только в установленном приложении');return}if(!d||d.app!=='shtab'||!d.projects||!d.map||!d.map.root)throw 0;S.restoreAsk={name:f.name,n:Object.keys(d.projects).length,data:d};renderProjects()}catch(_){toast('Это не файл копии Штаба')}};
   r.readAsText(f);e.target.value=''});
 function doRestore(){
   const d=S.restoreAsk&&S.restoreAsk.data;if(!d)return;const before={projects:clone(S.projects),map:clone(S.map)};
@@ -2454,6 +2462,7 @@ document.addEventListener('click',e=>{
     toast('Проект удалён',()=>{undo();S.screen=pid;render()});return}
   if(b.dataset.pcol){const pid=b.dataset.pcol;const i=S.pcol.indexOf(pid);if(i>=0)S.pcol.splice(i,1);else S.pcol.push(pid);cacheLocal();renderProjects();return}
   if(a==='backup'){doBackup();return}
+  if(a==='backup-enc'){doBackup('enc');return}
   if(a==='restore'){$('#restoreFile').click();return}
   if(a==='restore-no'){S.restoreAsk=null;renderProjects();return}
   if(a==='restore-yes'){doRestore();return}

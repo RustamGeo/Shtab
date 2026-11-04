@@ -10,6 +10,8 @@ async def main():
     await pg.click('[data-act="auth-signup"]');await pg.fill('#aEmail','a@b.ru');await pg.fill('#aPass','secret12');await pg.fill('#aPass2','secret12')
     await pg.click('#authF button[type=submit]');await pg.wait_for_timeout(1200)
     print('auth after',await pg.locator('#auth').is_visible(),'sync',await pg.locator('#sync').text_content())
+    await pg.wait_for_timeout(4500)
+    if await pg.locator('[data-act="e2e-later"]').count(): await pg.click('[data-act="e2e-later"]')
     await pg.click('[data-act="split-v"]');await pg.wait_for_timeout(2000)
     fr=pg.frame_locator('#pane1 iframe')
     print('pane auth visible',await fr.locator('#auth').is_visible(),'pane sync',await fr.locator('#sync').text_content())
