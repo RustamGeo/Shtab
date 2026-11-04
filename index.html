@@ -996,6 +996,7 @@ const LT={};            // id -> time of latest local change
 const seenRemote=new Set();
 let lastSaved=0;
 const strip=o=>{const c=clone(o);delete c._t;return c};
+const validProj=p=>!!p&&typeof p==='object'&&!p.enc&&Array.isArray(p.tasks);
 const docData=id=>id==='map'?(S.map?{kind:'map',nodes:S.map}:null):S.projects[id];
 function persist(id){
   LT[id]=Date.now();pendQ[id]=LT[id];savePendQ();
@@ -1022,7 +1023,7 @@ function onSnap(qs){
     if(d.id==='map'){mapDoc=data;continue}
     if(stale(d.id,data)){seenRemote.add(d.id);continue}
     seenRemote.add(d.id);synced.add(d.id);
-    const nd=strip(data),cur=S.projects[d.id];if(!cur||JSON.stringify(cur)!==JSON.stringify(nd)){S.projects[d.id]=nd;changed=true}}
+    const nd=strip(data),cur=S.projects[d.id];if(!validProj(nd))continue;if(!cur||JSON.stringify(cur)!==JSON.stringify(nd)){S.projects[d.id]=nd;changed=true}}
   if(firstSnap){
     firstSnap=false;
     for(const id of Object.keys(S.projects))if(!seen.has(id)){if(synced.has(id)&&!LT[id]){delete S.projects[id];synced.delete(id)}else persist(id)}
@@ -2694,6 +2695,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.screen&&(e.ctrlKey||e.metaKey)&&(S.projects[b.dataset.screen]||b.dataset.screen==='projects'||b.dataset.screen==='done')){openTab(b.dataset.screen);return}
   if(b.dataset.screen){document.getElementById('app').classList.remove('navopen');if(S.screen!==b.dataset.screen){S.screen=b.dataset.screen;S.confirmDel=false;render()}return}
   const a=b.dataset.act;
+  if(a==='resetlocal'){for(const k of ['','.map','.synced','.pendQ','.ui'])try{localStorage.removeItem(LSK+k)}catch(x){}location.reload();return}
   if(a==='newproj'){const rt=(b&&b.dataset.root&&S.map[b.dataset.root])?b.dataset.root:'root';const pid=newProject('Новый проект');addChild(rt,'Новый проект',{project:pid});persist(pid);persist('map');S.screen=pid;render();const i=$('#projName');i.focus();i.select();return}
   if(a==='example'){makeExample();persist('map');for(const pid in S.projects)persist(pid);TVP.init=false;GVP.init=false;render();return}
   if(a==='addsub'){const np=addSubproject(S.screen,'Новый подпроект');S.screen=np;render();const i=$('#projName');i.focus();i.select();return}
@@ -2782,9 +2784,16 @@ try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.par
 if(!S.map)S.map=newMap();
 if(!S.skin)S.skin='night';
 if(S.skin&&S.skin!=='shtab'){document.documentElement.dataset.skin=S.skin;loadFonts([SKINS.find(x=>x.id===S.skin)||SKINS[0]]);updFonts();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
-migrateOld();reconcile();
-ensureTabs();{const t=curTab();if(t){S.screen=t.screen;S.mapView=t.mapView}}
-render();applySplit();$('#sync').textContent='Подключаю облако…';
+// на устройство могли попасть «сырые» записи (например, зашифрованные — от старой версии): такие не показываем, облако пришлёт нормальные
+for(const id of Object.keys(S.projects))if(!validProj(S.projects[id]))delete S.projects[id];
+if(!S.map||typeof S.map!=='object'||!S.map.root||!Array.isArray(S.map.root.children))S.map=newMap();
+for(const k of Object.keys(S.map))if(!S.map[k]||!Array.isArray(S.map[k].children))delete S.map[k];
+try{migrateOld();reconcile();
+  ensureTabs();{const t=curTab();if(t){S.screen=t.screen;S.mapView=t.mapView}}
+  render();applySplit()}
+catch(err){console.error(err);try{S.tabs=null;S.tab=null;S.split=null;S.screen='projects';ensureTabs();render()}
+  catch(e2){$('#main').innerHTML=`<div class="tempty"><b>Не получилось открыть данные на этом устройстве.</b><br>Данные в облаке не пострадали. Нажмите кнопку — приложение очистит копию на устройстве и загрузит всё заново.<div style="margin-top:14px"><button class="btn" data-act="resetlocal">Загрузить заново из облака</button></div><p class="hint" style="margin-top:10px">${esc(String(e2&&e2.message||e2))}</p></div>`}}
+$('#sync').textContent='Подключаю облако…';
 initStore();
 })();
 </script>
