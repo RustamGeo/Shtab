@@ -904,6 +904,12 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .mp-bl{display:flex;align-items:baseline;gap:10px;width:100%;border:0;background:transparent;color:var(--ink);text-align:left;padding:7px 8px;border-radius:6px}
 .mp-bl:hover{background:var(--sunk)}.mp-bl .s{font-size:12px;color:var(--muted)}
 @media (max-width:640px){.mp{padding:0 0 60px}.blk{padding-left:22px}.bh{width:18px}.mp-meta{margin-left:0}.ed{font-size:16px}}
+.dnd-ghost{position:fixed;z-index:90;pointer-events:none;display:flex;flex-direction:column;gap:2px;max-width:280px;padding:7px 11px;border-radius:8px;background:var(--surface);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:13px;color:var(--ink);opacity:.95}
+.dnd-ghost b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dnd-ghost span{font-size:12px;color:var(--muted)}.dnd-ghost.ok{border-color:var(--accent)}.dnd-ghost.ok span{color:var(--accent)}
+body.dragging-on{user-select:none;cursor:grabbing}body.dragging-on *{cursor:grabbing!important}
+.drop-ok{outline:2px solid var(--accent)!important;outline-offset:-2px;background:var(--accent-soft)!important;border-radius:6px}
+#tg .node.drop-ok{outline:none!important;background:none!important}#tg .node.drop-ok rect.box{stroke:var(--accent);stroke-width:3}
+[data-drag]{touch-action:pan-y}
 </style>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -1484,14 +1490,14 @@ function renderChips(){if(S.tabs)try{renderTabs()}catch(e){}
   const item=(attrs,ic,label,n,cur)=>`<button class="sn-item" ${attrs} aria-current="${cur?'page':'false'}">${ic}<span>${label}</span>${n!=null?`<em class="num">${n}</em>`:''}</button>`;
   const tree=(pid,d)=>{const p=S.projects[pid];const st=stats(p);const kids=childProjects(pid).filter(([c])=>visProj(c));const ar=isArch(pid);
     const dot=d===0?`<button class="sn-dot" data-colorfor="${pid}" style="background:${projColor(pid)}" aria-label="Выбрать цвет проекта «${esc(p.name)}»" title="Цвет проекта"></button>`:`<span class="dot" style="background:${projColor(pid)}"></span>`;
-    return `<div class="sn-pw${ar?' arch':''}" style="--d:${d}">${d===0?dot:''}<button class="sn-proj" data-screen="${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}">${d===0?'':dot}<span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button></div>`+kids.map(([c])=>tree(c,d+1)).join('')};
+    return `<div class="sn-pw${ar?' arch':''}" style="--d:${d}">${d===0?dot:''}<button class="sn-proj" data-screen="${pid}" data-drag="proj:${pid}" data-drop="proj:${pid}" aria-current="${pid===curTop?'page':'false'}" style="--d:${d}">${d===0?'':dot}<span class="t">${esc(p.name||'Без названия')}</span><em class="num">${st.d}/${st.t}</em></button></div>`+kids.map(([c])=>tree(c,d+1)).join('')};
   $('#chips').innerHTML=`<div class="sn-sec">
       ${item('data-screen="projects"',I.list,'Проекты',open||null,S.screen==='projects')}
       ${item('data-screen="done"',I.donec,'Выполненные',(()=>{let n=0;for(const k in S.projects)for(const t of S.projects[k].tasks)if(t.status==='done')n++;return n||null})(),S.screen==='done')}
       ${item('data-nav="tree"',I.tree,'Дерево',null,isMap&&S.mapView==='tree')}
       ${item('data-nav="graph"',I.graph,'Граф',null,isMap&&S.mapView==='graph')}
     </div>
-    <div class="sn-list">${rootIds().map(r=>{const sc=(S.scol||[]).includes(r);const tp=topProjects(r).filter(([pid])=>visProj(pid));return `<div class="sn-h sn-root${sc?' closed':''}"><button class="sn-chev" data-scol="${r}" aria-expanded="${!sc}" aria-label="${sc?'Развернуть':'Свернуть'} «${esc(S.map[r].text)}»" title="${sc?'Развернуть':'Свернуть'}">${I.chev}</button><input class="sn-rname" id="rn-${r}" data-rename-root="${r}" value="${esc(S.map[r].text||'')}" maxlength="60" aria-label="Название корневого узла" title="Нажмите, чтобы переименовать" autocomplete="off" spellcheck="false">
+    <div class="sn-list">${rootIds().map(r=>{const sc=(S.scol||[]).includes(r);const tp=topProjects(r).filter(([pid])=>visProj(pid));return `<div class="sn-h sn-root${sc?' closed':''}" data-drop="root:${r}"><button class="sn-chev" data-scol="${r}" aria-expanded="${!sc}" aria-label="${sc?'Развернуть':'Свернуть'} «${esc(S.map[r].text)}»" title="${sc?'Развернуть':'Свернуть'}">${I.chev}</button><input class="sn-rname" id="rn-${r}" data-rename-root="${r}" value="${esc(S.map[r].text||'')}" maxlength="60" aria-label="Название корневого узла" title="Нажмите, чтобы переименовать" autocomplete="off" spellcheck="false">
       <button class="sn-add" data-act="newproj" data-root="${r}" aria-label="Новый проект в «${esc(S.map[r].text)}»" title="Новый проект">${I.plus}</button>${r==='root'?'':`<button class="sn-add sn-delroot" data-delroot="${r}" aria-label="Удалить корневой узел «${esc(S.map[r].text)}»" title="Удалить корневой узел">${I.trash}</button>`}${sc&&tp.length?`<em class="num sn-rc">${tp.length}</em>`:''}</div>
       ${sc?'':(tp.map(([pid])=>tree(pid,0)).join('')||'<div class="hint sn-empty">Проектов пока нет</div>')}`}).join('')}
       <button class="sn-newroot" data-act="newroot">${I.plus} Корневой узел</button></div>`;
@@ -1546,12 +1552,12 @@ function nlItems(pid,pad,f,today){
   ts.sort((a,b)=>(stRank[a.status]-stRank[b.status])||(prioRank[a.prio]-prioRank[b.prio])||((a.due||'9')<(b.due||'9')?-1:(a.due||'9')>(b.due||'9')?1:0));
   const tie='<span class="nl-tie" aria-hidden="true"></span>';
   let h=ts.map(t=>{const late=t.due&&t.due<today;const st=STATUS.find(x=>x[0]===t.status)[1];
-    return `<div class="nl-row nl-i" data-task="${t.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<button class="ck ${t.status}" data-ck="${t.id}" aria-label="Отметить выполненной"></button><span class="t">${esc(t.title||'Без названия')}</span>${t.prio==='high'?'<span class="nl-pr" title="Высокий приоритет">!</span>':''}</span>
+    return `<div class="nl-row nl-i" data-task="${t.id}" data-drag="task:${t.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<button class="ck ${t.status}" data-ck="${t.id}" aria-label="Отметить выполненной"></button><span class="t">${esc(t.title||'Без названия')}</span>${t.prio==='high'?'<span class="nl-pr" title="Высокий приоритет">!</span>':''}</span>
       <span class="nl-prog"></span><span class="nl-open"></span><span class="nl-due num ${late?'late':''}">${t.due?fmtDate(t.due):''}</span>
       <span class="nl-st"><button class="stp ${t.status}" data-cyc="${t.id}" title="Сменить статус">${st}</button></span>
       <span class="nl-x"><button class="icodel" data-deltask="${t.id}" aria-label="Удалить задачу «${esc(t.title)}»" title="Удалить">${I.trash}</button></span></div>`}).join('');
   if(f==='all'||f==='active'){
-    h+=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).map(mm=>`<div class="nl-row nl-i" data-memo="${mm.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<span class="nl-mi">${I.memo}</span><span class="t">${esc(mm.title||'Без названия')}</span><span class="nl-prev">${esc(memoPreview(mm))}</span></span>
+    h+=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).map(mm=>`<div class="nl-row nl-i" data-memo="${mm.id}" data-drag="memo:${mm.id}" role="button" tabindex="0"><span class="nl-name" style="padding-left:${pad}px">${tie}<span class="nl-mi">${I.memo}</span><span class="t">${esc(mm.title||'Без названия')}</span><span class="nl-prev">${esc(memoPreview(mm))}</span></span>
       <span class="nl-prog"></span><span class="nl-open"></span><span class="nl-due num">${mm.updated?fmtDate(ymd(new Date(mm.updated))):''}</span><span class="nl-st"><span class="nst plain">заметка</span></span>
       <span class="nl-x"><button class="icodel" data-delmemo="${mm.id}" aria-label="Удалить заметку «${esc(mm.title)}»" title="Удалить">${I.trash}</button></span></div>`).join('');
     const dn=p.tasks.filter(t=>t.status==='done').length;
@@ -1560,20 +1566,20 @@ function nlItems(pid,pad,f,today){
   return h}
 function nlSubs(pid,depth,f,today){
   return childProjects(pid).filter(([c])=>visProj(c)&&treeMatch(c,f,today)).map(([c,cp])=>{const st=pStatus(cp,today,c);
-    return `<div class="nl-row nl-s${isArch(c)?' arch':''}" data-screen="${c}" role="button" tabindex="0">
+    return `<div class="nl-row nl-s${isArch(c)?' arch':''}" data-screen="${c}" data-drag="proj:${c}" data-drop="proj:${c}" role="button" tabindex="0">
       <span class="nl-name" style="padding-left:${16+depth*22}px"><span class="nl-tie" aria-hidden="true"></span><span class="dot" style="background:${projColor(c)}"></span><span class="t">${esc(cp.name||'Без названия')}</span>${(cp.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${cp.memos.length}</span>`:''}</span>
       ${nlCells(cp,st,today,true)}
       <span class="nl-x">${archBtn(c)}<button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить">${I.trash}</button></span></div>${nlAsk(c,childProjects(c).length)}`+nlItems(c,16+depth*22+22,f,today)+nlSubs(c,depth+1,f,today)}).join('')}
 function rootSecs(mk,opt){const rs=rootIds();if(rs.length<2)return mk(topProjects());
   return rs.map(r=>{const g=mk(topProjects(r));if(!g&&opt.hideEmpty)return'';const n=topProjects(r).filter(([pid])=>visProj(pid)).length;
-    return `<div class="nl-rh"><span class="t">${esc(S.map[r].text||'Без названия')}</span><span class="num">${n} ${plural(n,'проект','проекта','проектов')}</span>${opt.add?`<button class="ghost" data-act="newproj" data-root="${r}">${I.plus} Проект</button>`:''}</div>`+(g||`<div class="nl-rempty">${opt.empty||'Пусто'}</div>`)}).join('')}
+    return `<div class="nl-rh" data-drop="root:${r}"><span class="t">${esc(S.map[r].text||'Без названия')}</span><span class="num">${n} ${plural(n,'проект','проекта','проектов')}</span>${opt.add?`<button class="ghost" data-act="newproj" data-root="${r}">${I.plus} Проект</button>`:''}</div>`+(g||`<div class="nl-rempty">${opt.empty||'Пусто'}</div>`)}).join('')}
 function renderProjects(){
   const list=sortedProjects();const today=todayStr();let f=S.pfilter||'all';if(!NF.some(x=>x[0]===f))f='all';
   let open=0,late=0,narch=0;for(const [id,p] of list){if(isArch(id)){narch++;continue}for(const t of p.tasks)if(t.status!=='done'){open++;if(t.due&&t.due<today)late++}}
   const mkG=arr=>arr.filter(([pid])=>visProj(pid)&&treeMatch(pid,f,today)).map(([pid,p])=>{
     const st=pStatus(p,today,pid);const nsub=childProjects(pid).length;const collapsed=S.pcol.includes(pid)&&f==='all';
     return `<div class="nl-group${isArch(pid)?' arch':''}">
-      <div class="nl-row nl-g" data-screen="${pid}" role="button" tabindex="0">
+      <div class="nl-row nl-g" data-screen="${pid}" data-drag="proj:${pid}" data-drop="proj:${pid}" role="button" tabindex="0">
         <span class="nl-name"><button class="nl-chev" data-pcol="${pid}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Развернуть':'Свернуть'} «${esc(p.name)}»">${I.chev}</button><button class="sq sqb" data-colorfor="${pid}" style="background:${projColor(pid)}" aria-label="Выбрать цвет проекта" title="Цвет проекта"></button><span class="t">${esc(p.name||'Без названия')}</span>${nsub?`<span class="nl-meta num">${nsub} подпр.</span>`:''}${(p.memos||[]).length?`<span class="nl-tag" title="Заметки">${I.memo}${p.memos.length}</span>`:''}</span>
         ${nlCells(p,st,today,false)}
         <span class="nl-x">${archBtn(pid)}<button class="icodel" data-delsub="${pid}" aria-label="Удалить проект «${esc(p.name)}»" title="Удалить">${I.trash}</button></span>
@@ -1955,7 +1961,7 @@ function renderSubs(){
   box.innerHTML=`<div class="colh"><h3>${I.folder} Подпроекты <span class="num">${subs.length}</span></h3></div>
     <div class="stable">${subs.map(([c,cp])=>{const s=treeStats(c),n2=childProjects(c).length,op=s.t-s.d;
       if(S.confirmSub===c)return `<div class="sr ask"><span>Удалить «${esc(cp.name||'Без названия')}» и его задачи?${n2?' Вложенные подпроекты поднимутся выше.':''}</span><span class="askrow"><button class="askb danger" data-delsub-yes="${c}">Удалить</button><button class="askb" data-delsub-no="">Отмена</button></span></div>`;
-      return `<div class="sr" data-screen="${c}" role="button" tabindex="0"><span class="dot" style="background:${projColor(c)}"></span>
+      return `<div class="sr" data-screen="${c}" data-drag="proj:${c}" data-drop="proj:${c}" role="button" tabindex="0"><span class="dot" style="background:${projColor(c)}"></span>
         <span class="sr-main"><b>${esc(cp.name||'Без названия')}</b><span class="sr-meta">${!s.t?'задач нет':op?op+' '+plural(op,'открытая','открытые','открытых'):'всё сделано'}${n2?' · '+n2+' '+plural(n2,'подпроект','подпроекта','подпроектов'):''}</span><span class="bar"><b style="width:${s.pct}%"></b></span></span>
         <span class="num sr-n">${s.d}/${s.t}</span><button class="icodel" data-delsub="${c}" aria-label="Удалить подпроект «${esc(cp.name)}»" title="Удалить подпроект">${I.trash}</button></div>`}).join('')||'<div class="tempty sm">Подпроектов пока нет</div>'}</div>
     <form class="sadd" id="subForm"><input id="newSub" placeholder="Новый подпроект — Enter" maxlength="80" autocomplete="off" aria-label="Название подпроекта"><button class="btn sec" type="submit" aria-label="Добавить подпроект">${I.plus}</button></form>`;
@@ -1971,7 +1977,7 @@ const TH=[['title','Задача'],['status','Статус'],['prio','Приор
 function headHTML(){return `<div class="tr th" role="row"><span></span>${TH.map(([k,l])=>`<button class="thb c-${k} ${S.tsort.k===k?'on':''}" data-tsort="${k}">${l}${S.tsort.k===k?(S.tsort.dir>0?' ↑':' ↓'):''}</button>`).join('')}<span></span></div>`}
 function rowHTML(t){
   const late=t.due&&t.status!=='done'&&t.due<todayStr();const node=t.nodeId&&S.map[t.nodeId];const st=STATUS.find(x=>x[0]===t.status)[1];
-  return `<div class="tr ${t.status}" data-task="${t.id}" data-prio="${t.prio}" tabindex="0" role="row" aria-label="${esc(t.title)}">
+  return `<div class="tr ${t.status}" data-task="${t.id}" data-drag="task:${t.id}" data-prio="${t.prio}" tabindex="0" role="row" aria-label="${esc(t.title)}">
     <button class="ck ${t.status}" data-ck="${t.id}" aria-label="${t.status==='done'?'Вернуть в работу':'Отметить выполненной'}">${t.status==='done'?I.check:''}</button>
     <span class="c-title"><span class="ttl">${esc(t.title)}</span>${node?`<span class="linkmark" title="На карте: ${esc(node.text)}">${I.map}</span>`:''}${t.notes?`<span class="linkmark" title="Есть комментарий">${I.note}</span>`:''}
       <span class="mmeta">${t.status==='doing'?'<span class="stp doing">в работе</span>':''}${t.prio!=='mid'&&t.status!=='done'?`<span class="prio ${t.prio}">${PRIO[t.prio]}</span>`:''}${t.due?`<span class="due ${late?'late':''}">${late?'просрочено · ':''}${fmtDate(t.due)}</span>`:''}</span></span>
@@ -2005,7 +2011,7 @@ function memoPreview(m){const l=(m.body||'').split('\n').map(x=>x.replace(/^#+\s
 function renderMemos(){
   const box=$('#memosec');const pid=S.screen,p=S.projects[pid];if(!box||!p)return;const ms=(p.memos||[]).slice().sort((a,b)=>(b.updated||0)-(a.updated||0));
   box.innerHTML=`<div class="colh"><h3>${I.memo} Заметки <span class="num">${ms.length}</span></h3></div>
-    <div class="stable">${ms.map(m=>`<div class="mr" data-memo="${m.id}" role="button" tabindex="0"><span class="mr-ic">${I.memo}</span>
+    <div class="stable">${ms.map(m=>`<div class="mr" data-memo="${m.id}" data-drag="memo:${m.id}" role="button" tabindex="0"><span class="mr-ic">${I.memo}</span>
       <span class="sr-main"><b>${esc(m.title||'Без названия')}</b><span class="sr-meta">${esc(memoPreview(m))||'Пустая заметка'}</span></span>
       <span class="mr-d">${m.updated?fmtDate(ymd(new Date(m.updated))):''}</span>
       <button class="icodel" data-delmemo="${m.id}" aria-label="Удалить заметку «${esc(m.title)}»" title="Удалить заметку">${I.trash}</button></div>`).join('')||'<div class="tempty sm">Заметок пока нет. Здесь можно хранить мысли, протоколы встреч, ссылки — всё, что не задача.</div>'}</div>
@@ -2233,12 +2239,16 @@ function treeZoom(f,cx,cy){const k=Math.min(2.5,Math.max(.08,TVP.k*f));const r=k
 function bindTree(){
   const svg=$('#tsvg');const pts=new Map();let st=null,moved=false,pinch=null;
   svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;
-    if(pts.size===1)st={x:e.clientX,y:e.clientY,vx:TVP.x,vy:TVP.y,target:e.target};
+    if(pts.size===1){const nd=e.target.closest&&e.target.closest('[data-node]');st={x:e.clientX,y:e.clientY,vx:TVP.x,vy:TVP.y,target:e.target,node:nd&&!isRootId(nd.dataset.node)?nd.dataset.node:null,t0:Date.now()}}
     else if(pts.size===2){const[a,b]=[...pts.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),k:TVP.k}}});
   svg.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pts.size===2&&pinch){const[a,b]=[...pts.values()];const r=svg.getBoundingClientRect();treeZoom((pinch.k*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d)/TVP.k,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);moved=true;return}
-    if(st){const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;svg.classList.add('grab')}if(moved){TVP.x=st.vx+dx;TVP.y=st.vy+dy;applyTVP()}}});
-  const up=e=>{const tap=!moved&&pts.size===1&&st;const tgt=st&&st.target;pts.delete(e.pointerId);if(pts.size<2)pinch=null;
+    if(DND.on){dndMove(e.clientX,e.clientY);return}
+    if(st){const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>5){
+        if(st.node&&!moved&&(e.pointerType==='mouse'||Date.now()-st.t0>350)){moved=true;dndStart('node:'+st.node,e.clientX,e.clientY);return}
+        moved=true;svg.classList.add('grab')}if(moved){TVP.x=st.vx+dx;TVP.y=st.vy+dy;applyTVP()}}});
+  const up=e=>{if(DND.on){pts.delete(e.pointerId);st=null;svg.classList.remove('grab');dndEnd(e.type==='pointercancel');return}
+    const tap=!moved&&pts.size===1&&st;const tgt=st&&st.target;pts.delete(e.pointerId);if(pts.size<2)pinch=null;
     if(pts.size===0){svg.classList.remove('grab');
       if(tap&&tgt&&tgt.closest){const tg=tgt.closest('[data-tog]'),nd=tgt.closest('[data-node]');
         if(tg){const n=S.map[tg.dataset.tog];n.collapsed=!n.collapsed;persist('map');drawTree()}
@@ -2788,6 +2798,69 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();act('del')}
   else if(e.key==='F2'){e.preventDefault();const i=$('#nodeText');i?.focus();i?.select()}
 });
+
+
+/* ---------- перетаскивание: меняем структуру руками ---------- */
+function dndSnap(){return{map:clone(S.map),projects:clone(S.projects)}}
+function dndUndo(sn){const ids=new Set([...Object.keys(sn.projects),...Object.keys(S.projects)]);S.map=sn.map;
+  for(const id of ids){const a=JSON.stringify(sn.projects[id]||null),b=JSON.stringify(S.projects[id]||null);if(a!==b){if(sn.projects[id])S.projects[id]=sn.projects[id];else delete S.projects[id];persist(id)}}persist('map');render()}
+function inSub(k,x){return subtree(k).includes(x)}
+function nodeLabel(id){const n=S.map[id];return n?(n.text||'узел'):'узел'}
+function moveNode(k,par){IX=null;const m=S.map;if(!m[k]||!m[par]||isRootId(k))return'Корневой узел перемещать нельзя';
+  if(k===par||inSub(k,par))return'Нельзя положить ветку внутрь неё самой';const old=parentOf(k);if(old===par)return null;
+  if(old)m[old].children=m[old].children.filter(c=>c!==k);m[par].children.push(k);m[par].collapsed=false;if(isRootId(par))m[k].side=pickSide(par);else delete m[k].side;
+  const n=m[k];if(n.taskId){const f=findTask(n.taskId),np=projOf(par);if(f&&np&&np!==f.pid){const [t]=S.projects[f.pid].tasks.splice(S.projects[f.pid].tasks.indexOf(f.t),1);S.projects[np].tasks.push(t);n.taskPid=np;persist(f.pid);persist(np)}}
+  IX=null;persist('map');return null}
+function moveTask(tid,pid){const f=findTask(tid);if(!f||!S.projects[pid])return'Задача не найдена';if(f.pid===pid)return null;const t=f.t;
+  S.projects[f.pid].tasks=S.projects[f.pid].tasks.filter(x=>x!==t);S.projects[pid].tasks.push(t);
+  if(t.nodeId&&S.map[t.nodeId]){S.map[t.nodeId].taskPid=pid;const pk=nodeOfProject(pid);if(pk&&!inSub(pk,t.nodeId))moveNode(t.nodeId,pk)}
+  persist(f.pid);persist(pid);persist('map');return null}
+function moveMemo(mid,pid){const f=findMemo(mid);if(!f||!S.projects[pid])return'Заметка не найдена';if(f.pid===pid)return null;
+  S.projects[f.pid].memos=(S.projects[f.pid].memos||[]).filter(x=>x!==f.m);(S.projects[pid].memos||(S.projects[pid].memos=[])).push(f.m);persist(f.pid);persist(pid);return null}
+// что тянем: proj | task | memo | node
+function dndSrc(spec){const i=spec.indexOf(':'),k=spec.slice(0,i),id=spec.slice(i+1);
+  if(k==='node'){if(id.startsWith('vt:'))return{k:'task',id:id.slice(3)};if(id.startsWith('vm:'))return{k:'memo',id:id.slice(3)};const n=S.map[id];if(n&&n.project&&S.projects[n.project])return{k:'proj',id:n.project,node:id};return{k:'node',id}}
+  return{k,id}}
+function dndLabel(src){if(src.k==='proj')return S.projects[src.id]?.name||'Проект';if(src.k==='task'){const f=findTask(src.id);return f?f.t.title:'Задача'}
+  if(src.k==='memo'){const f=findMemo(src.id);return f?(f.m.title||'Заметка'):'Заметка'}return nodeLabel(src.id)}
+function dndTarget(x,y){const el=document.elementFromPoint(x,y);if(!el||!el.closest)return null;
+  const d=el.closest('[data-drop]');if(d){const [k,id]=d.dataset.drop.split(':');return{k,id,el:d}}
+  const g=el.closest('#tg [data-node]');if(g&&!VN[g.dataset.node])return{k:'node',id:g.dataset.node,el:g};return null}
+// куда кладём → в какой узел карты / проект
+function dndPlan(src,dst){if(!dst)return null;
+  const dstNode=dst.k==='proj'?nodeOfProject(dst.id):dst.k==='root'?dst.id:dst.id;const dstProj=dst.k==='proj'?dst.id:dst.k==='node'?projOf(dst.id):null;
+  if(src.k==='task'){if(!dstProj)return null;const f=findTask(src.id);if(!f||f.pid===dstProj)return null;return{text:'в «'+S.projects[dstProj].name+'»',run:()=>moveTask(src.id,dstProj)}}
+  if(src.k==='memo'){if(!dstProj)return null;const f=findMemo(src.id);if(!f||f.pid===dstProj)return null;return{text:'в «'+S.projects[dstProj].name+'»',run:()=>moveMemo(src.id,dstProj)}}
+  const k=src.k==='proj'?(src.node||nodeOfProject(src.id)):src.id;if(!k||!dstNode||!S.map[dstNode])return null;
+  if(!S.map[k]||k===dstNode||inSub(k,dstNode)||parentOf(k)===dstNode)return null;
+  const where=dst.k==='root'?'в корень «'+(S.map[dst.id].text||'')+'»':dst.k==='proj'?'в «'+S.projects[dst.id].name+'»':'под «'+nodeLabel(dstNode)+'»';
+  return{text:where,run:()=>moveNode(k,dstNode)}}
+const DND={on:false,src:null,ghost:null,tgt:null,plan:null,suppress:false};
+function dndStart(spec,x,y){const src=dndSrc(spec);if(!src)return false;if(src.k==='node'&&isRootId(src.id))return false;
+  DND.on=true;DND.src=src;const g=document.createElement('div');g.className='dnd-ghost';g.innerHTML=`<b>${esc(dndLabel(src))}</b><span></span>`;document.body.appendChild(g);DND.ghost=g;
+  document.body.classList.add('dragging-on');dndMove(x,y);return true}
+function dndMove(x,y){if(!DND.on)return;DND.ghost.style.left=(x+14)+'px';DND.ghost.style.top=(y+12)+'px';
+  const t=dndTarget(x,y);const plan=dndPlan(DND.src,t);if(DND.tgt&&DND.tgt.el!==(t&&t.el))DND.tgt.el.classList.remove('drop-ok');
+  DND.tgt=plan?t:null;DND.plan=plan;if(plan)t.el.classList.add('drop-ok');DND.ghost.querySelector('span').textContent=plan?'→ '+plan.text:'';DND.ghost.classList.toggle('ok',!!plan)}
+function dndEnd(cancel){if(!DND.on)return;const plan=DND.plan,src=DND.src;if(DND.tgt)DND.tgt.el.classList.remove('drop-ok');DND.ghost.remove();document.body.classList.remove('dragging-on');
+  DND.on=false;DND.tgt=null;DND.plan=null;DND.suppress=true;setTimeout(()=>DND.suppress=false,50);
+  if(cancel||!plan)return;const sn=dndSnap();const err=plan.run();if(err){toast(err);return}IX=null;
+  if(S.screen==='map'){if(S.mapView==='tree')TVP.init=TVP.init;render()}else render();toast('«'+dndLabel(src)+'» '+plan.text,()=>dndUndo(sn))}
+document.addEventListener('click',e=>{if(DND.suppress){e.stopPropagation();e.preventDefault();DND.suppress=false}},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&DND.on)dndEnd(true)});
+// списки и меню: тянем строку мышью (на сенсорном экране — долгое нажатие)
+document.addEventListener('pointerdown',e=>{if(e.button!==0||DND.on)return;const el=e.target.closest&&e.target.closest('[data-drag]');if(!el)return;
+  if(e.target.closest('button:not([data-drag]),input,select,textarea,a,[contenteditable="true"]'))return;
+  const spec=el.dataset.drag,x0=e.clientX,y0=e.clientY,touch=e.pointerType!=='mouse';let started=false,timer=0;
+  const mv=ev=>{if(started){ev.preventDefault();dndMove(ev.clientX,ev.clientY);return}const d=Math.abs(ev.clientX-x0)+Math.abs(ev.clientY-y0);
+    if(touch){if(d>10){clearTimeout(timer);cleanup()}return}if(d>6){started=dndStart(spec,ev.clientX,ev.clientY);if(!started)cleanup()}};
+  const up=ev=>{clearTimeout(timer);cleanup();if(started)dndEnd(false)};
+  const cancel=()=>{clearTimeout(timer);cleanup();if(started)dndEnd(true)};
+  const cleanup=()=>{document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',cancel)};
+  if(touch)timer=setTimeout(()=>{started=dndStart(spec,x0,y0);if(started&&navigator.vibrate)navigator.vibrate(15)},380);
+  document.addEventListener('pointermove',mv,{passive:false});document.addEventListener('pointerup',up);document.addEventListener('pointercancel',cancel)},true);
+document.addEventListener('touchmove',e=>{if(DND.on)e.preventDefault()},{passive:false});
+document.addEventListener('contextmenu',e=>{if(DND.on)e.preventDefault()});
 
 /* ---------- boot ---------- */
 try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.parse(lsGet(LSK+'.map')||'null');if(mp&&mp.root)S.map=mp;
