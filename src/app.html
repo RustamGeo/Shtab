@@ -682,7 +682,7 @@ body.resizing{user-select:none}body.resizing iframe{pointer-events:none}
 .nl-group.arch{opacity:.5}
 .nl-group.arch .nl-g .t{font-weight:500}
 .nst.arch{color:var(--muted);border-color:var(--line)}
-.node.arch{opacity:.38;filter:grayscale(1)}.edge.arch{opacity:.3;filter:grayscale(1)}
+.node.arch{opacity:.38;filter:grayscale(1)}.node.idle{opacity:.42;filter:grayscale(1)}.edge.idle{opacity:.25;filter:grayscale(1)}.edge.arch{opacity:.3;filter:grayscale(1)}
 .sn-pw.arch{opacity:.5}
 .arch-note{display:flex;align-items:center;gap:10px;grid-column:1/-1;padding:8px 12px;border:1px dashed var(--line);border-radius:var(--rs);color:var(--muted);font-size:13px}
 .arch-note svg{flex:none}.arch-note .ghost{margin-left:auto}
@@ -949,7 +949,7 @@ const UIK=LSK+'.ui'+(PANE?'.pane'+PANE:'');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let synced=new Set();try{synced=new Set(JSON.parse(localStorage.getItem('shtab.v1.synced')||'[]'))}catch(e){}
-function cacheLocal(){IX=null;lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch,scol:S.scol}))}
+function cacheLocal(){IX=null;lsSet(LSK,JSON.stringify(S.projects));lsSet(LSK+'.synced',JSON.stringify([...synced]));lsSet(LSK+'.map',JSON.stringify(S.map));lsSet(UIK,JSON.stringify({tabs:S.tabs,tab:S.tab,split:S.split,screen:S.screen,mapView:S.mapView,gopt:S.gopt,pcol:S.pcol,ptasks:S.ptasks,skin:S.skin,v2:1,mapItems:S.mapItems,pitems:S.pitems,showArch:S.showArch,taskFocus:S.taskFocus,scol:S.scol}))}
 function setSync(s){const el=$('#sync');el.dataset.s=s;const tm=lastSaved?new Date(lastSaved).toTimeString().slice(0,5):'';
   el.textContent=s==='locked'?'Нужна фраза шифрования':s==='cloud'?'Сохранено в облаке'+(tm?' · '+tm:''):s==='err'?'Нет связи, повторю сохранение…':s==='saving'?'Сохраняю…':'Только на этом устройстве';
   el.title=s==='local'?'Облако недоступно в этом окне. Данные лежат в браузере — сделайте резервную копию на вкладке «Проекты».':''}
@@ -1059,6 +1059,15 @@ let AR=new Set();
 function setArch(pid,v){const p=S.projects[pid];if(!p)return;if(v)p.archived=true;else delete p.archived;persist(pid);toast(v?`«${p.name||'Проект'}» — в архиве`:`«${p.name||'Проект'}» вернулся из архива`);render()}
 function archBtn(pid,big){const own=!!S.projects[pid].archived,inh=!own&&isArch(pid);
   return inh?'':`<button class="icodel${big?' big':''} arb" data-arch="${pid}" aria-pressed="${own}" aria-label="${own?'Вернуть из архива':'В архив'} «${esc(S.projects[pid].name)}»" title="${own?'Вернуть из архива':'В архив'}">${own?I.unarch:I.arch}</button>`}
+/* режим «Только с задачами»: цветные — ветки, где есть открытые задачи */
+let ACT=new Set();
+function activeNodes(){const out=new Set();const open=t=>t&&t.status!=='done';
+  const walk=(id,g)=>{const n=S.map[id];if(!n||g>300)return false;let a=false;
+    if(n.project&&S.projects[n.project]&&S.projects[n.project].tasks.some(open))a=true;if(open(taskOf(n)))a=true;
+    for(const c of n.children)if(walk(c,g+1))a=true;if(a)out.add(id);return a};
+  for(const r of rootIds())walk(r,0);return out}
+const focusOn=()=>!!S.taskFocus;
+function focusToggle(cls){const on=focusOn();return `<button class="${cls}" data-act="taskfocus" aria-pressed="${on}" title="${on?'Показать все ветки в цвете':'Оставить цветными только ветки с открытыми задачами'}">${I.task} Только с задачами</button>`}
 function archToggle(cls){const on=showArch();return `<button class="${cls}" data-act="showarch" aria-pressed="${on}" title="${on?'Скрыть архивные проекты':'Показать архивные проекты'}">${I.arch} Архив${on?'':': скрыт'}</button>`}
 function topProjOf(pid){return projChain(pid)[0]||pid}
 function colorOf(p){const c=p?p.color:0;return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)?c:`var(${PCOL[(+c||0)%PCOL.length]})`}
@@ -1907,7 +1916,7 @@ const MAXW=230,VG=12,HG=46;
 let TG={};
 const TVP={x:0,y:0,k:1,init:false};
 function layoutTree(){
-  buildVirtual();AR=archNodes();const m=S.map,G={};
+  buildVirtual();AR=archNodes();ACT=focusOn()?activeNodes():new Set();const m=S.map,G={};
   const metrics=id=>{const n=nodeObj(id),root=isRootId(id),virt=!m[id];const font=root?F_ROOT:F_NODE;const label=fitText(n.text,font,MAXW);
     let extra=root?36:(taskOf(n)?42:n.memoId?45:26);let st='';if(n.project&&S.projects[n.project]){const s=stats(S.projects[n.project]);st=` ${s.d}/${s.t}`;extra+=textW(st,F_MONO)+4}
     return{label,st,w:Math.max(root?120:56,textW(label,font)+extra),h:root?48:(n.project?38:virt?30:34)}};
@@ -1927,7 +1936,7 @@ function layoutTree(){
 function branchColor(bid){if(!bid)return'var(--ink)';const n=S.map[bid];if(n&&n.project&&S.projects[n.project])return projColor(n.project);const pr=parentOf(bid);const i=pr&&S.map[pr]?S.map[pr].children.indexOf(bid):0;return `var(${PCOL[(i<0?0:i)%PCOL.length]})`}
 function mountTree(){
   $('#mapbox').innerHTML=`<svg id="tsvg" aria-label="Карта проектов, дерево"><g id="tg"></g></svg>
-    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>☐ задача</span><span style="color:var(--warn)">◧ в работе</span><span style="color:var(--ok)">☑ готово</span><span style="color:var(--bad)">☐ просрочено</span><span>☰ заметка</span><span>⊕ ветка свёрнута</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${archToggle('gbtn')}</div>
+    <div class="mtop">${searchBox()}<span class="mhint tlegend"><span>☐ задача</span><span style="color:var(--warn)">◧ в работе</span><span style="color:var(--ok)">☑ готово</span><span style="color:var(--bad)">☐ просрочено</span><span>☰ заметка</span><span>⊕ ветка свёрнута</span></span><button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${focusToggle('gbtn')}${archToggle('gbtn')}</div>
     <div class="mtools"><button class="gbtn ico" data-z="in" aria-label="Приблизить">${I.plus}</button><button class="gbtn ico" data-z="out" aria-label="Отдалить">${I.minus}</button><button class="gbtn ico" data-z="fit" aria-label="Вписать карту">${I.fit}</button></div>
     <div class="mbar" id="mbar"></div><div id="npwrap"></div>`;
   drawTree();renderMbar();renderPanel();
@@ -1937,12 +1946,12 @@ function mountTree(){
 function drawTree(){
   const g=$('#tg');if(!g)return;const m=S.map;TG=layoutTree();let html='';
   const edges=id=>{const n=nodeObj(id);if(n.collapsed)return;const a=TG[id];for(const c of treeKids(id)){const b=TG[c];if(!b||b.x===undefined)continue;
-    const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;const virt=!m[c];const ar=AR.has(c)||(virt&&AR.has(id));
-    html+=`<path class="edge${virt?' vedge':''}${ar?' arch':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${virt?.45:b.depth>1?.6:.9}"/>`;edges(c)}};
+    const x1=b.dir>0?a.x+a.w:a.x,y1=a.cy,x2=b.dir>0?b.x:b.x+b.w,y2=b.cy,mx=(x1+x2)/2;const virt=!m[c];const ar=AR.has(c)||(virt&&AR.has(id));const idl=focusOn()&&!(virt?(nodeObj(c).taskId?(()=>{const t=findTask(nodeObj(c).taskId);return t&&t.t.status!=='done'})():ACT.has(id)):ACT.has(c));
+    html+=`<path class="edge${virt?' vedge':''}${ar?' arch':''}${idl&&!ar?' idle':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${branchColor(b.branch)}" stroke-opacity="${virt?.45:b.depth>1?.6:.9}"/>`;edges(c)}};
   for(const r of rootIds())edges(r);
   for(const id in TG){const a=TG[id];if(a.x===undefined)continue;const n=nodeObj(id);const virt=!m[id];const root=isRootId(id);const col=branchColor(a.branch);const t=taskOf(n);
     const isP=n.project&&S.projects[n.project];
-    const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+((AR.has(id)||(virt&&AR.has(n.par)))?' arch':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
+    const q=lc(S.search);const cls='node'+(root?' root':'')+(a.depth===1?' l1':'')+(isP?' proj':'')+(virt?' virt':'')+((AR.has(id)||(virt&&AR.has(n.par)))?' arch':'')+(focusOn()&&!root&&!(virt?(n.taskId?(()=>{const t=findTask(n.taskId);return t&&t.t.status!=='done'})():ACT.has(n.par)):ACT.has(id))?' idle':'')+(n.memoId?' memo':'')+(id===S.sel?' sel':'')+(q&&lc(n.text).includes(q)?' hit':'');
     let mark='';const cx=a.x+15,cy=a.cy;
     if(t){const late=t.status!=='done'&&t.due&&t.due<todayStr();const sc=t.status==='done'?'var(--ok)':late?'var(--bad)':t.status==='doing'?'var(--warn)':'var(--muted)';
       mark=t.status==='done'?`<rect x="${cx-6.5}" y="${cy-6.5}" width="13" height="13" rx="3.5" fill="var(--ok)"/><path d="M${cx-3.2},${cy} l2.2,2.3 l4,-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
@@ -2074,7 +2083,7 @@ function refreshGraph(){
     s.r=(S.gopt.sizeMode==='same'?(isRootId(n.id)?10:isP?8:n.kind==='ghost'?5:6):(isRootId(n.id)?13:n.kind==='ghost'?3.6+Math.min(3,Math.sqrt(d)):isP?8+Math.min(5,Math.sqrt(d)):4.5+Math.min(8,Math.sqrt(d)*1.9)))*sz;
     let lbl=n.label||'';if(lbl.length>34)lbl=lbl.slice(0,33)+'…';const big=isRootId(n.id)||isP;s.lw=textW(lbl,`${big?600:500} ${(big?13.5:12.5)*(S.gopt.text||1)}px ${F_BODY}`)+6;
     next.set(n.id,s)}
-  {const par=new Map();for(const e of g.edges)if(e.kind==='tree')par.set(e.b,e.a);
+  {const par=new Map();for(const e of g.edges)if(e.kind==='tree')par.set(e.b,e.a);ACT=focusOn()?activeNodes():new Set();
    for(const s of next.values()){
      if(s.kind==='ghost'){s.color=colors.ghost;s.ring=null;s.shape=null;continue}
      if(isRootId(s.id)){s.color=OBS()?colors.node:colors.ink;s.ring=null;s.shape=null;continue}
@@ -2083,6 +2092,8 @@ function refreshGraph(){
      s.ring=statusHex(t);s.done=!!(t&&t.status==='done');s.shape=s.kind==='memo'?'memo':(s.kind==='task'||(S.map[s.id]&&t))?'task':null;
      if(OBS()&&!S.gopt.ocolor&&s.kind!=='ghost'){s.color=colors.node;s.ring=null}
      if(OBS())s.shape=null;
+     if(focusOn()){const live=s.kind==='task'?(()=>{const f=findTask(s.taskId);return !!(f&&f.t.status!=='done')})():s.kind==='memo'?ACT.has(s.src):s.kind==='ghost'?false:ACT.has(s.id);
+       s.idle=!live;if(live)s.color=branchHex(branchOfNode(s.id,par));else{s.color=colors.ghost;s.ring=null}}else s.idle=false;
      if(s.arch){s.color=colors.ghost;s.ring=null}
      if(s.kind==='task'||s.kind==='memo')s.r=6*(S.gopt.size||1)}
    /* размер по «весу» ветки: подпроекты считаются полностью, прочие узлы — наполовину, задачи и заметки — на четверть */
@@ -2093,7 +2104,7 @@ function refreshGraph(){
        s.r=Math.min(58,(s.isP?5.5:4.5)+(s.isP?10:6)*Math.pow(w,.7))*sz;s.w=w;if(s.r>mx)mx=s.r}
      for(const r of rootIds()){const rt=next.get(r);if(rt)rt.r=Math.max(14*sz,mx*.8)}}
    if(OBS())for(const s of next.values())s.r=Math.max(3.2,s.r*.62)}
-  SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'&&!(OBS()&&!S.gopt.ocolor)?next.get(e.b).color:null,arch:!!(next.get(e.b).arch)}));SIM.adj=adj;
+  SIM.nodes=next;SIM.list=[...next.values()];SIM.edges=g.edges.map(e=>({...e,s:next.get(e.a),t:next.get(e.b),bc:e.kind==='tree'&&(!(OBS()&&!S.gopt.ocolor)||(focusOn()&&!next.get(e.b).idle))?next.get(e.b).color:null,idle:!!next.get(e.b).idle,arch:!!(next.get(e.b).arch)}));SIM.adj=adj;
   if(GROUP()){computeTargets();if(fresh)for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx+(Math.random()-.5)*8;n.y=n.ty+(Math.random()-.5)*8}}else{if(fresh){computeTargets();let mr=1;for(const n of SIM.list)if(n.tx!=null)mr=Math.max(mr,Math.hypot(n.tx,n.ty));const sc=Math.min(.75,(260+38*Math.sqrt(SIM.list.length))/mr);for(const n of SIM.list)if(!old.has(n.id)&&n.tx!=null){n.x=n.tx*sc+(Math.random()-.5)*6;n.y=n.ty*sc+(Math.random()-.5)*6}}for(const n of SIM.list){n.tx=null;n.ty=null}}
   const sig=SIM.list.map(n=>n.id).sort().join(',')+'#'+g.edges.map(e=>e.a+e.b).sort().join(',');
   if(sig!==SIM.sig){SIM.sig=sig;if(fresh===SIM.list.length&&fresh){SIM.alpha=1;{const t0=performance.now();for(let i=0;i<320&&performance.now()-t0<700;i++)tick()}SIM.alpha=.1;if(!GVP.init)graphFit()}else SIM.alpha=Math.max(SIM.alpha,.45)}
@@ -2149,10 +2160,10 @@ function draw(){
   const dim=id=>(F&&ha>.5&&!F.has(id))||(M&&!M.has(id));const sel=S.panel?S.sel:null;
   ctx.lineCap='round';
   for(const e of SIM.edges){const hl=F&&hid&&(e.a===hid||e.b===hid);const fd=F&&!hl;const ms=M&&dim(e.a)&&dim(e.b);
-    const base=e.kind==='link'?.6:(e.bc?.5:obs?.7:.8);ctx.globalAlpha=(ms?.1:fd?base*dA(.12):hl?base+(.95-base)*ha:base)*(e.arch&&!hl?.45:1);ctx.strokeStyle=hl&&ha>.5?colors.accent:(e.bc||colors.edge);ctx.lineWidth=(hl?1.2+.5*ha:obs?.9:e.kind==='tree'?1.2:1)/Math.sqrt(v.k);
+    const base=e.kind==='link'?.6:(e.bc?.5:obs?.7:.8);ctx.globalAlpha=(ms?.1:fd?base*dA(.12):hl?base+(.95-base)*ha:base)*((e.arch||e.idle)&&!hl?.4:1);ctx.strokeStyle=hl&&ha>.5?colors.accent:(e.bc||colors.edge);ctx.lineWidth=(hl?1.2+.5*ha:obs?.9:e.kind==='tree'?1.2:1)/Math.sqrt(v.k);
     ctx.setLineDash(e.kind==='link'?[4/v.k,3/v.k]:[]);ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);ctx.lineTo(e.t.x,e.t.y);ctx.stroke()}
   ctx.setLineDash([]);
-  for(const n of SIM.list){const fdn=F&&!F.has(n.id),msn=M&&!M.has(n.id);ctx.globalAlpha=(msn?.16:fdn?dA(.16):1)*(n.arch&&hid!==n.id?.45:1);const col=hid===n.id&&ha>.3?colors.accent:n.color;
+  for(const n of SIM.list){const fdn=F&&!F.has(n.id),msn=M&&!M.has(n.id);ctx.globalAlpha=(msn?.16:fdn?dA(.16):1)*((n.arch||n.idle)&&hid!==n.id?.45:1);const col=hid===n.id&&ha>.3?colors.accent:n.color;
     if(n.kind==='ghost'){ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.fillStyle=colors.bg;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill();ctx.stroke()}
     else if(n.shape==='task'){const r=n.r*.92,rr=(x,y,w)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-w,y-w,w*2,w*2,w*.38);else ctx.rect(x-w,y-w,w*2,w*2)};
       if(n.done)ctx.globalAlpha*=.6;ctx.fillStyle=col;rr(n.x,n.y,r);ctx.fill();
@@ -2185,7 +2196,7 @@ function mountGraph(){
   $('#mapbox').innerHTML=`<canvas id="gcv" aria-label="Карта проектов, граф"></canvas>
     <div class="mtop">${searchBox()}
       <button class="gbtn pri" data-g="new">${I.plus} Узел</button>
-      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${archToggle('gbtn')}
+      <button class="gbtn" data-g="items" aria-pressed="${S.mapItems!==false}">${I.task}${I.memo} Задачи и заметки</button>${focusToggle('gbtn')}${archToggle('gbtn')}
       <button class="gbtn" data-g="set" aria-pressed="${S.showSet}">${I.gear} Настройки</button>
       <button class="gbtn ico" data-g="fit" aria-label="Показать весь граф">${I.fit}</button>
     </div>${S.showSet?setPanel():''}
@@ -2439,6 +2450,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.scol){const r=b.dataset.scol;S.scol=S.scol||[];const i=S.scol.indexOf(r);if(i<0)S.scol.push(r);else S.scol.splice(i,1);cacheLocal();renderChips();return}
   if(b.dataset.delroot){deleteRoot(b.dataset.delroot);return}
   if(b.dataset.arch){e.stopPropagation();const pid=b.dataset.arch;setArch(pid,!S.projects[pid].archived);return}
+  if(b.dataset.act==='taskfocus'){S.taskFocus=!focusOn();cacheLocal();if(S.screen==='map'){if(S.mapView==='tree'){drawTree()}else{refreshGraph();dirty=true;startLoop()}b.setAttribute('aria-pressed',focusOn());b.title=focusOn()?'Показать все ветки в цвете':'Оставить цветными только ветки с открытыми задачами'}return}
   if(b.dataset.act==='showarch'){S.showArch=!showArch();cacheLocal();GVP.auto=true;TVP.init=false;render();if(S.screen==='map'&&S.mapView==='tree')treeFit();return}
   if(b.dataset.df){S.dfilter=b.dataset.df;renderDone();return}
   if(b.dataset.dcol){e.stopPropagation();S.dcol=S.dcol||[];const i=S.dcol.indexOf(b.dataset.dcol);if(i<0)S.dcol.push(b.dataset.dcol);else S.dcol.splice(i,1);renderDone();return}
@@ -2538,7 +2550,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- boot ---------- */
 try{const raw=lsGet(LSK);if(raw)S.projects=JSON.parse(raw)||{};const mp=JSON.parse(lsGet(LSK+'.map')||'null');if(mp&&mp.root)S.map=mp;
   const ui=JSON.parse(lsGet(UIK)||'{}');if(Array.isArray(ui.tabs)&&ui.tabs.length){S.tabs=ui.tabs;S.tab=ui.tab}if(ui.split&&!PANE)S.split=ui.split;
-  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.showArch===false)S.showArch=false;if(Array.isArray(ui.scol))S.scol=ui.scol;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||ui.screen==='done'||S.projects[ui.screen]||isMemoScr(ui.screen)))S.screen=ui.screen}catch(e){S.projects={}}
+  if(PANE){const hu=JSON.parse(lsGet(LSK+'.ui')||'{}');ui.skin=hu.skin;ui.v2=hu.v2;if(!ui.tabs){const q=new URLSearchParams(location.search);ui.screen=q.get('screen')||'map';ui.mapView=q.get('mv')||'graph'}}if(ui.mapView)S.mapView=ui.mapView;if(ui.gopt)Object.assign(S.gopt,ui.gopt);if(Array.isArray(ui.pcol))S.pcol=ui.pcol;if(Array.isArray(ui.ptasks))S.ptasks=ui.ptasks;if(ui.mapItems===false)S.mapItems=false;if(ui.showArch===false)S.showArch=false;if(ui.taskFocus)S.taskFocus=true;if(Array.isArray(ui.scol))S.scol=ui.scol;if(ui.pitems===false)S.pitems=false;if(ui.skin)S.skin=ui.skin;if(!ui.v2)S.skin='night';if(ui.screen&&(ui.screen==='map'||ui.screen==='projects'||ui.screen==='done'||S.projects[ui.screen]||isMemoScr(ui.screen)))S.screen=ui.screen}catch(e){S.projects={}}
 if(!S.map)S.map=newMap();
 if(!S.skin)S.skin='night';
 if(S.skin&&S.skin!=='shtab'){document.documentElement.dataset.skin=S.skin;loadFonts([SKINS.find(x=>x.id===S.skin)||SKINS[0]]);updFonts();if(document.fonts)document.fonts.ready.then(refreshSkinDeps)}
